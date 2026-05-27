@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aegis — Architecture Diagrams</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 48px 32px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #6b7280;
+      font-size: 0.95rem;
+      margin-bottom: 56px;
+    }
+
+    .step {
+      background: #1a1d27;
+      border: 1px solid #2d3145;
+      border-radius: 16px;
+      padding: 36px 40px;
+      margin-bottom: 48px;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 6px;
+    }
+
+    .step-badge {
+      background: #3b82f6;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .step-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #f3f4f6;
+    }
+
+    .step-subtitle {
+      color: #6b7280;
+      font-size: 0.875rem;
+      margin-bottom: 28px;
+      padding-left: 2px;
+    }
+
+    .diagram-wrapper {
+      background: #12141e;
+      border: 1px solid #252840;
+      border-radius: 10px;
+      padding: 32px 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: auto;
+    }
+
+    .diagram-wrapper .mermaid {
+      min-width: 620px;
+      width: 100%;
+    }
+
+    /* legend */
+    .legend {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+      margin-bottom: 24px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.775rem;
+      color: #9ca3af;
+    }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .dot-new    { background: #3b82f6; }
+    .dot-exists { background: #374151; border: 1px solid #4b5563; }
+    .dot-data   { background: #059669; }
+    .dot-ai     { background: #7c3aed; }
+
+    /* delta */
+    .delta {
+      margin-top: 24px;
+      background: #12141e;
+      border: 1px solid #2d3145;
+      border-left: 3px solid #3b82f6;
+      border-radius: 8px;
+      padding: 18px 22px;
+    }
+
+    .delta-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      color: #3b82f6;
+      margin-bottom: 12px;
+    }
+
+    .delta ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .delta ul li {
+      font-size: 0.875rem;
+      color: #d1d5db;
+      padding-left: 18px;
+      position: relative;
+      line-height: 1.55;
+    }
+
+    .delta ul li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: #3b82f6;
+      font-weight: 700;
+    }
+
+    .added   { color: #6ee7b7; font-weight: 500; }
+    .removed { color: #fca5a5; font-weight: 500; }
+
+    /* file tags */
+    .change-note {
+      margin-top: 20px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+    .tag-new  { background: #14532d; color: #86efac; border: 1px solid #166534; }
+    .tag-mod  { background: #1e3a5f; color: #93c5fd; border: 1px solid #1d4ed8; }
+    .tag-same { background: #292524; color: #a8a29e; border: 1px solid #44403c; }
+
+    .export-bar { display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
+    .export-bar button {
+      background:#1e3a5f; color:#93c5fd; border:1px solid #1d4ed8;
+      border-radius:6px; padding:4px 12px; font-size:0.775rem;
+      cursor:pointer; font-family:inherit;
+    }
+    .export-bar button:hover { background:#1d4ed8; color:#fff; }
+  </style>
+</head>
+<body>
+
+  <h1>Aegis — System Architecture</h1>
+  <p class="subtitle">Each diagram builds on the previous one. Muted = already existed. Highlighted = new this step.</p>
+
+  <!-- shared legend -->
+  <div class="legend" style="justify-content:center; margin-bottom:48px;">
+    <div class="legend-item"><div class="legend-dot dot-new"></div> New this step</div>
+    <div class="legend-item"><div class="legend-dot dot-exists"></div> Carried from previous step</div>
+    <div class="legend-item"><div class="legend-dot dot-data"></div> Data / storage</div>
+    <div class="legend-item"><div class="legend-dot dot-ai"></div> AI processing</div>
+  </div>
+
+  <!-- ── STEP 1 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 1</span>
+      <span class="step-title">Basic LLM Chat</span>
+    </div>
+    <p class="step-subtitle">The baseline. User messages stream through LangChain to GPT-4o and back. A system prompt defines the Aegis persona.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    U([User]) --> UI[Streamlit UI]
+    UI --> LLM[ChatOpenAI\nLangChain]
+    LLM --> API[(OpenAI API\ngpt-4o)]
+    API -->|token stream| UI
+    UI --> R([Response])
+
+    style U   fill:#1d4ed8,stroke:#3b82f6,color:#fff
+    style UI  fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style LLM fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style API fill:#065f46,stroke:#10b981,color:#e0e0e0
+    style R   fill:#1d4ed8,stroke:#3b82f6,color:#fff
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">Baseline — starting point</div>
+      <ul>
+        <li>Every user message goes directly to GPT-4o — no retrieval, no tools, no document access.</li>
+        <li>A <span class="added">SystemMessage</span> is prepended on every request to define the Aegis persona and restrict responses to data breach analysis.</li>
+        <li>The model answers entirely from training data — stale figures, no cited sources.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW app/config.py</span>
+      <span class="tag tag-new">NEW app/llm.py</span>
+      <span class="tag tag-new">NEW ui/app.py</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 2 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 2</span>
+      <span class="step-title">Model Parameters</span>
+    </div>
+    <p class="step-subtitle">Expose temperature and max_tokens as sidebar sliders. The LLM instance is now configured per request, not at startup.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    SB[Sidebar\ntemperature\nmax_tokens] -->|params| UI
+
+    U([User]) --> UI[Streamlit UI]
+    UI --> LLM[ChatOpenAI\nLangChain]
+    LLM --> API[(OpenAI API\ngpt-4o)]
+    API -->|token stream| UI
+    UI --> R([Response])
+
+    style SB  fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style U   fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style LLM fill:#374151,stroke:#4b5563,color:#9ca3af
+    style API fill:#1a2e23,stroke:#374151,color:#6b7280
+    style R   fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 1</div>
+      <ul>
+        <li><span class="added">Sidebar added</span> with temperature and max_tokens sliders — the user can now control how the model generates text before each request.</li>
+        <li><span class="removed">Hardcoded defaults removed</span> — <code>build_llm()</code> now receives parameters dynamically on every call instead of fixed values baked in at startup.</li>
+        <li>The data path is identical to Step 1 — the only observable difference is model behaviour at different parameter values.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-mod">MOD app/llm.py</span>
+      <span class="tag tag-mod">MOD ui/app.py</span>
+      <span class="tag tag-same">SAME config.py</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 3 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 3</span>
+      <span class="step-title">Introduction to RAG</span>
+    </div>
+    <p class="step-subtitle">The IBM PDF is ingested, chunked and embedded into ChromaDB. Each query now retrieves the most relevant chunks and injects them as context before calling the LLM.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    subgraph ING [" Ingestion — run once "]
+      PDF[(IBM PDF)] -->|PyPDFLoader\nchunk + embed| VDB[(ChromaDB\nvector store)]
+    end
+
+    SB[Sidebar\ntemperature · max_tokens\nk · RAG toggle] -->|params| UI
+
+    U([User]) --> UI[Streamlit UI]
+    U -->|query| EMB[Embed Query]
+    EMB -->|cosine similarity| VDB
+    VDB -->|top-k chunks| CTX[Context Window]
+    UI --> CTX
+    CTX --> LLM[ChatOpenAI]
+    LLM --> API[(OpenAI API\ngpt-4o)]
+    API -->|stream| UI
+    UI --> R([Response + Sources])
+
+    style PDF fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style VDB fill:#065f46,stroke:#10b981,color:#e0e0e0
+    style EMB fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style CTX fill:#4c1d95,stroke:#7c3aed,color:#e0e0e0
+    style R   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+
+    style SB  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style U   fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style LLM fill:#374151,stroke:#4b5563,color:#9ca3af
+    style API fill:#1a2e23,stroke:#374151,color:#6b7280
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 2</div>
+      <ul>
+        <li><span class="added">ChromaDB vector store introduced</span> — the IBM PDF is chunked with a recursive splitter, embedded with OpenAI, and stored once at ingestion time.</li>
+        <li><span class="added">Retrieval step inserted before the LLM call</span> — every query is now embedded and matched against stored chunks by cosine similarity before the LLM sees it.</li>
+        <li><span class="added">Context injection</span> — top-k chunks are inserted into the prompt, giving the LLM access to document content it was never trained on.</li>
+        <li><span class="removed">The LLM is no longer the source of truth</span> — it reasons over retrieved facts instead of recalling from memory, eliminating stale training-data answers.</li>
+        <li>UI gains a RAG toggle — Chat mode bypasses retrieval entirely, RAG mode routes through the new pipeline.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW rag/ingestion.py</span>
+      <span class="tag tag-new">NEW rag/retriever.py</span>
+      <span class="tag tag-new">NEW app/rag_chain.py</span>
+      <span class="tag tag-mod">MOD ui/app.py</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 4 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 4</span>
+      <span class="step-title">Deconstructing RAG — Hybrid Search</span>
+    </div>
+    <p class="step-subtitle">The vector-only retriever is replaced with a hybrid EnsembleRetriever combining BM25 keyword search and vector similarity at equal weights.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    subgraph ING [" Ingestion — run once "]
+      PDF[(IBM PDF)] -->|chunk + embed| VDB[(ChromaDB\nvector store)]
+    end
+
+    SB[Sidebar\ntemperature · max_tokens\nk · hybrid toggle\nchunk_size · overlap] -->|params| UI
+
+    U([User]) --> UI[Streamlit UI]
+    U -->|query| SPLIT{ }
+
+    SPLIT -->|embed| VEC[Vector Retriever\ncosine similarity]
+    SPLIT -->|keyword| BM25[BM25 Retriever\nterm frequency]
+    VEC -->|top-k| ENS[EnsembleRetriever\n50% vector · 50% BM25]
+    BM25 -->|top-k| ENS
+    VDB -.->|index| VEC
+    VDB -.->|all docs| BM25
+
+    ENS -->|merged chunks| CTX[Context Window]
+    UI --> CTX
+    CTX --> LLM[ChatOpenAI]
+    LLM --> API[(OpenAI API\ngpt-4o)]
+    API -->|stream| UI
+    UI --> R([Response + Sources])
+
+    style BM25 fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style ENS  fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style SB   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+
+    style PDF  fill:#1a2e23,stroke:#374151,color:#6b7280
+    style VDB  fill:#1a2e23,stroke:#374151,color:#6b7280
+    style VEC  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style CTX  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style U    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI   fill:#374151,stroke:#4b5563,color:#9ca3af
+    style LLM  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style API  fill:#1a2e23,stroke:#374151,color:#6b7280
+    style R    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style SPLIT fill:#0f1117,stroke:#0f1117,color:#0f1117
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 3</div>
+      <ul>
+        <li><span class="removed">Pure vector retrieval replaced</span> — cosine similarity alone was returning high-level overview chunks instead of the specific data tables needed to answer exact questions.</li>
+        <li><span class="added">BM25 retriever added in parallel</span> — keyword search scores chunks by term frequency, guaranteeing exact matches (like "healthcare" or "retail") are never missed.</li>
+        <li><span class="added">EnsembleRetriever merges both signals</span> — BM25 and vector results are combined at 50/50 weight and deduplicated before being passed to the LLM.</li>
+        <li><span class="added">Chunk size and overlap become configurable</span> — sidebar sliders let you tune chunking strategy live without touching code.</li>
+        <li>Ingestion and the LLM call are unchanged — the improvement is entirely inside the retrieval layer.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-mod">MOD rag/retriever.py</span>
+      <span class="tag tag-mod">MOD rag/ingestion.py</span>
+      <span class="tag tag-mod">MOD app/rag_chain.py</span>
+      <span class="tag tag-mod">MOD ui/app.py</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 5 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 5</span>
+      <span class="step-title">Function Calling & Tools</span>
+    </div>
+    <p class="step-subtitle">The LLM is bound to two tools. It decides when to call them, with what inputs, and reasons over the results. Multi-step tool use is supported via a 5-round execution loop.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    subgraph ING [" Ingestion — run once "]
+      PDF[(IBM PDF)] -->|chunk + embed| VDB[(ChromaDB\nvector store)]
+    end
+
+    SB[Sidebar\ntemperature · max_tokens\nk · mode: Chat/RAG/Tools] -->|params| UI
+
+    U([User]) --> UI[Streamlit UI]
+    UI --> LLM1[LLM Round 1\nbind_tools]
+
+    LLM1 -->|tool_calls| DISP{Tool\nDispatch}
+
+    DISP --> SKB[search_knowledge_base\nhybrid retrieval]
+    DISP --> CBC[calculate_breach_cost\narithmetic]
+
+    SKB -.->|query| VDB
+    VDB -.->|chunks| SKB
+
+    SKB -->|ToolMessage| LLM2[LLM Round N\nreason over results]
+    CBC -->|ToolMessage| LLM2
+    LLM2 -->|no more tool calls| UI
+    UI --> R([Response + Tool Trace])
+
+    style DISP fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style SKB  fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style CBC  fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style LLM1 fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style LLM2 fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style R    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+
+    style PDF  fill:#1a2e23,stroke:#374151,color:#6b7280
+    style VDB  fill:#1a2e23,stroke:#374151,color:#6b7280
+    style SB   fill:#374151,stroke:#4b5563,color:#9ca3af
+    style U    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI   fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 4</div>
+      <ul>
+        <li><span class="removed">Retrieval was always automatic</span> — RAG mode injected chunks into every request whether they were relevant or not.</li>
+        <li><span class="added">The LLM now decides when to retrieve</span> — tools are bound via <code>bind_tools()</code> and the model chooses which tool to call, with what inputs, based on the query.</li>
+        <li><span class="added">Multi-round execution loop</span> — the model can call tools multiple times in sequence (up to 5 rounds) before producing a final answer, enabling compound queries like "search for cost → then calculate".</li>
+        <li><span class="added">calculate_breach_cost tool added</span> — arithmetic tool the LLM invokes once it has retrieved the necessary inputs from the knowledge base.</li>
+        <li><span class="added">Tool call trace in UI</span> — every tool name, input and output is shown in an expandable section, making the model's reasoning transparent.</li>
+        <li>The hybrid retrieval mechanism and ChromaDB index are unchanged — retrieval is now wrapped inside a tool rather than called automatically.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW tools/tools.py</span>
+      <span class="tag tag-new">NEW tools/chain.py</span>
+      <span class="tag tag-mod">MOD ui/app.py</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 6 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 6</span>
+      <span class="step-title">Improved Ingestion — Unstructured.io + GPT-4o Vision</span>
+    </div>
+    <p class="step-subtitle">The ingestion pipeline is replaced entirely. Unstructured classifies document elements by layout. Charts are rendered by pymupdf and described by GPT-4o vision. Garbled OCR is detected and rerouted automatically.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    subgraph ING [" Ingestion — Enhanced pipeline (new) "]
+      PDF[(IBM PDF)] --> UNS[Unstructured\nhi_res layout analysis]
+      UNS --> ELEMS[Elements\nTitle · NarrativeText\nTable · FigureCaption]
+      ELEMS --> ROUTE{_chunk_by_title\nrouter}
+      ROUTE -->|NarrativeText| SPLIT2[RecursiveCharacterSplitter\nNarrativeText only]
+      ROUTE -->|Table| GPT4T[GPT-4o text\nTableSummary]
+      ROUTE -->|FigureCaption\nor garbled OCR| PYMUPDF[pymupdf\nrender page → PNG]
+      PYMUPDF --> GPT4V[GPT-4o vision\nImageSummary]
+      SPLIT2 --> VDB[(ChromaDB\nNarrativeText\nTableSummary\nImageSummary)]
+      GPT4T --> VDB
+      GPT4V --> VDB
+    end
+
+    SB[Sidebar\ntemperature · max_tokens\nk · Basic/Enhanced mode] -->|params| UI
+
+    U([User]) --> UI[Streamlit UI]
+    UI --> LLM1[LLM Round 1\nbind_tools]
+    LLM1 -->|tool_calls| DISP{Tool Dispatch}
+    DISP --> SKB[search_knowledge_base\nhybrid retrieval]
+    DISP --> CBC[calculate_breach_cost]
+    SKB -.->|query| VDB
+    VDB -.->|richer chunks| SKB
+    SKB -->|ToolMessage| LLM2[LLM Round N]
+    CBC -->|ToolMessage| LLM2
+    LLM2 --> UI
+    UI --> R([Response + Tool Trace])
+
+    style PDF    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style UNS    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style ELEMS  fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style ROUTE  fill:#7c3aed,stroke:#a855f7,color:#e0e0e0
+    style SPLIT2 fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style GPT4T  fill:#7c3aed,stroke:#a855f7,color:#e0e0e0
+    style PYMUPDF fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style GPT4V  fill:#7c3aed,stroke:#a855f7,color:#e0e0e0
+    style VDB    fill:#065f46,stroke:#10b981,color:#e0e0e0
+
+    style SB    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style U     fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style LLM1  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style DISP  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style SKB   fill:#374151,stroke:#4b5563,color:#9ca3af
+    style CBC   fill:#374151,stroke:#4b5563,color:#9ca3af
+    style LLM2  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style R     fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 5</div>
+      <ul>
+        <li><span class="removed">PyPDFLoader removed</span> — it produced a flat character stream, garbling or silently dropping charts, tables and multi-column layouts.</li>
+        <li><span class="added">UnstructuredPDFLoader (hi_res) replaces it</span> — uses computer vision layout analysis to classify each page region as Title, NarrativeText, Table, FigureCaption, etc.</li>
+        <li><span class="added">Chart pages routed to GPT-4o vision</span> — when a FigureCaption element or garbled OCR text is detected, pymupdf renders the full page as a PNG and GPT-4o describes the chart as an <code>ImageSummary</code> chunk.</li>
+        <li><span class="added">Tables routed to GPT-4o text</span> — raw table extractions are restructured into <code>TableSummary</code> chunks that preserve all numbers and relationships.</li>
+        <li><span class="added">Garbled OCR detection</span> — elements whose average token length is below 3.5 chars (bar chart label noise like "A oO A BB A") are automatically rerouted to vision instead of being stored as garbage text.</li>
+        <li>The retrieval layer, tool definitions, and execution loop are completely unchanged — the improvement is entirely in what was stored in ChromaDB at ingestion time.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-mod">MOD rag/ingestion.py — full rewrite</span>
+      <span class="tag tag-mod">MOD ui/app.py — Basic/Enhanced toggle</span>
+      <span class="tag tag-same">SAME retriever.py · tools · chain.py</span>
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#1e3a5f',
+        primaryTextColor: '#e0e0e0',
+        primaryBorderColor: '#2563eb',
+        lineColor: '#4b5563',
+        secondaryColor: '#4c1d95',
+        tertiaryColor: '#065f46',
+        background: '#12141e',
+        clusterBkg: '#1a1f2e',
+        clusterBorder: '#2d3145',
+        titleColor: '#9ca3af',
+        edgeLabelBackground: '#12141e',
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '14px',
+      }
+    });
+
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        document.querySelectorAll('.step').forEach(function (step, i) {
+          var wrapper = step.querySelector('.diagram-wrapper');
+          if (!wrapper) return;
+          var badge = step.querySelector('.step-badge');
+          var title = step.querySelector('.step-title');
+          var name = (badge ? badge.textContent.trim().toLowerCase().replace(/\s+/g, '-') : 'step' + (i + 1))
+            + '--' + (title ? title.textContent.trim().toLowerCase().replace(/[\s\/&]+/g, '-').replace(/[^a-z0-9-]/g, '') : '');
+          var bar = document.createElement('div');
+          bar.className = 'export-bar';
+          bar.innerHTML =
+            '<button onclick="exportDiagram(this,\'svg\',\'' + name + '\')">&#8595; SVG</button>' +
+            '<button onclick="exportDiagram(this,\'png\',\'' + name + '\')">&#8595; PNG</button>';
+          wrapper.insertAdjacentElement('afterend', bar);
+        });
+      }, 1500);
+    });
+
+    function exportDiagram(btn, format, filename) {
+      var svg = btn.closest('.step').querySelector('.mermaid svg');
+      if (!svg) { alert('Diagram not rendered yet — try again in a moment.'); return; }
+
+      // Read the viewBox to get natural (unscaled) dimensions.
+      // Mermaid shrinks the SVG to fit the container, but viewBox preserves the full size.
+      var vb = svg.getAttribute('viewBox');
+      var natW, natH;
+      if (vb) {
+        var parts = vb.trim().split(/[\s,]+/);
+        natW = parseFloat(parts[2]);
+        natH = parseFloat(parts[3]);
+      } else {
+        natW = svg.getBoundingClientRect().width;
+        natH = svg.getBoundingClientRect().height;
+      }
+
+      var clone = svg.cloneNode(true);
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      // Override width/height so the browser renders at natural size, not container size
+      clone.setAttribute('width',  natW);
+      clone.setAttribute('height', natH);
+      var data = new XMLSerializer().serializeToString(clone);
+
+      if (format === 'svg') {
+        triggerDownload(URL.createObjectURL(new Blob([data], { type: 'image/svg+xml' })), filename + '.svg');
+      } else {
+        var url = URL.createObjectURL(new Blob([data], { type: 'image/svg+xml;charset=utf-8' }));
+        var img = new Image();
+        img.onload = function () {
+          // Ensure at least 2400px wide so text is always legible
+          var minW = 2400;
+          var scale = Math.max(2, minW / natW);
+          var canvas = document.createElement('canvas');
+          canvas.width  = Math.round(natW * scale);
+          canvas.height = Math.round(natH * scale);
+          var ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#12141e';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.scale(scale, scale);
+          ctx.drawImage(img, 0, 0, natW, natH);
+          triggerDownload(canvas.toDataURL('image/png'), filename + '.png');
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+      }
+    }
+
+    function triggerDownload(url, filename) {
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+  </script>
+</body>
+</html>

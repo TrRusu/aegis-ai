@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Flavour Groups — AI Experiments Knowledge Exchange</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #1a1a2e;
+      background: #fff;
+      padding: 32px;
+      max-width: 794px; /* A4 width at 96dpi */
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      border-bottom: 2px solid #1d4ed8;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+
+    .header-label {
+      font-size: 8.5pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #1d4ed8;
+    }
+
+    .header h1 {
+      font-size: 20pt;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+
+    .header-sub {
+      font-size: 10pt;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* ── Intro box ── */
+    .intro {
+      background: #eff6ff;
+      border-left: 4px solid #1d4ed8;
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin-bottom: 28px;
+      font-size: 10.5pt;
+      color: #1e3a5f;
+    }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 9pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #1d4ed8;
+      margin-bottom: 14px;
+    }
+
+    /* ── Steps ── */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .step-number {
+      width: 36px;
+      height: 36px;
+      background: #1d4ed8;
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12pt;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-body {}
+
+    .step-title {
+      font-weight: 600;
+      font-size: 11pt;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .step-desc {
+      font-size: 10pt;
+      color: #374151;
+      line-height: 1.55;
+    }
+
+    .step-note {
+      display: inline-block;
+      margin-top: 6px;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 4px;
+      padding: 3px 10px;
+      font-size: 9pt;
+      color: #166534;
+    }
+
+    /* ── Format box ── */
+    .format-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px 18px;
+      margin-bottom: 28px;
+    }
+
+    .format-box p {
+      font-size: 10pt;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+
+    .format-box p:last-child { margin-bottom: 0; }
+
+    .format-box strong { color: #0f172a; }
+
+    /* ── Outcome box ── */
+    .outcome-box {
+      background: #fefce8;
+      border: 1px solid #fde047;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 28px;
+    }
+
+    .outcome-box .outcome-label {
+      font-size: 8.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #854d0e;
+      margin-bottom: 6px;
+    }
+
+    .outcome-box p {
+      font-size: 10pt;
+      color: #713f12;
+      line-height: 1.5;
+    }
+
+    /* ── Action items ── */
+    .actions {
+      margin-bottom: 28px;
+    }
+
+    .action-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 10pt;
+      color: #374151;
+    }
+
+    .action-item:last-child { border-bottom: none; }
+
+    .action-check {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #1d4ed8;
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 8.5pt;
+      color: #94a3b8;
+    }
+
+    /* ── Print styles ── */
+    @media print {
+      body { padding: 0; max-width: 100%; }
+      @page { margin: 20mm 18mm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <span class="header-label">AI Course — Group Knowledge Exchange</span>
+    <h1>Flavour Groups</h1>
+    <span class="header-sub">Connecting students with shared AI experiment interests to learn from each other's findings</span>
+  </div>
+
+  <div class="intro">
+    Each student has been exploring their own AI experiment direction this semester. This initiative groups students with similar topics together so they can share outcomes, learn from each other's findings, and collectively build deeper understanding — with teachers joining as participants too.
+  </div>
+
+  <p class="section-title">How It Works — 5 Steps</p>
+
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-number">1</div>
+      <div class="step-body">
+        <div class="step-title">Submit Your Pitch</div>
+        <div class="step-desc">
+          Write a short summary (roughly one A4 page) of your experiment, approach, and findings — your "flavour". Submit it to the Canvas assignment <em>"Pitch of your personal flavour"</em>. AI can help you generate this summary. Make sure to include relevant keywords so your pitch can be matched with others.
+        </div>
+        <span class="step-note">Deliverable: 1-page pitch on Canvas</span>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-body">
+        <div class="step-title">AI-Assisted Grouping</div>
+        <div class="step-desc">
+          All pitches are analysed by AI to identify shared themes and topics. Students are grouped based on similarity, with a maximum of 6 students per group to keep sessions small and productive.
+        </div>
+        <span class="step-note">Groups formed by teachers based on AI analysis</span>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-body">
+        <div class="step-title">Vote on Flavours You Want to See</div>
+        <div class="step-desc">
+          A form is published on Teams (similar to the project selection form at the start of the semester). Browse all students' experiment pitches and vote for the ones you'd most like to hear results from. Teachers participate in this vote too — they can join any flavour group that interests them.
+        </div>
+        <span class="step-note">Voting form on Teams — link published separately</span>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">4</div>
+      <div class="step-body">
+        <div class="step-title">Matched Groups Schedule a Sharing Session</div>
+        <div class="step-desc">
+          Once groups are matched, each group organises its own sharing session. The goal is to exchange knowledge and let others learn from your findings. The format is flexible — groups can decide what works best for them, and multiple shorter sessions are encouraged over a single long one.
+        </div>
+        <span class="step-note">Suggested format: 5 min pitch per person → open discussion</span>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">5</div>
+      <div class="step-body">
+        <div class="step-title">Document for Your Portfolio</div>
+        <div class="step-desc">
+          Collect evidence of how you presented your findings and how you helped others learn. Include this in your portfolio as proof of the learning outcome: <em>"letting others learn from you"</em>.
+        </div>
+        <span class="step-note">Portfolio evidence: slides, notes, session recording, feedback</span>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="section-title">Session Format Guidance</p>
+  <div class="format-box">
+    <p>A half-day meeting is <strong>not</strong> the recommended format. Short, focused sessions work better.</p>
+    <p><strong>Suggested structure:</strong> Each person gets ~5 minutes to present their key findings, followed by a group discussion. This gets things started without feeling like a formal presentation.</p>
+    <p>Groups can run <strong>multiple shorter sessions</strong> if needed — format should match the group's dynamic and be enjoyable for everyone involved.</p>
+  </div>
+
+  <p class="section-title">Your Action Checklist</p>
+  <div class="actions">
+    <div class="action-item"><div class="action-check"></div> Write your 1-page pitch (use AI to help, include keywords)</div>
+    <div class="action-item"><div class="action-check"></div> Submit pitch to Canvas: <em>"Pitch of your personal flavour"</em></div>
+    <div class="action-item"><div class="action-check"></div> Browse other pitches and vote on Teams form</div>
+    <div class="action-item"><div class="action-check"></div> Coordinate with your matched group and schedule a sharing session</div>
+    <div class="action-item"><div class="action-check"></div> Collect portfolio evidence from the session</div>
+  </div>
+
+  <div class="outcome-box">
+    <div class="outcome-label">Learning Outcome Connection</div>
+    <p>This activity directly maps to the learning outcome requiring you to <strong>"let others learn from you"</strong>. Your portfolio evidence from Step 5 — how you presented, what you shared, and how you supported your peers' understanding — is the proof of this outcome.</p>
+  </div>
+
+  <div class="footer">
+    <span>AI Course — Flavour Groups Initiative</span>
+    <span>Print or save as PDF: Ctrl + P</span>
+  </div>
+
+</body>
+</html>

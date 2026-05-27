@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pitch — Aegis</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 11pt;
+      line-height: 1.65;
+      color: #1a1a2e;
+      background: #fff;
+      padding: 32px;
+      max-width: 794px;
+      margin: 0 auto;
+    }
+
+    .header {
+      border-bottom: 2px solid #1d4ed8;
+      padding-bottom: 14px;
+      margin-bottom: 22px;
+    }
+
+    .header-label {
+      font-size: 8.5pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #1d4ed8;
+      margin-bottom: 4px;
+    }
+
+    .header h1 {
+      font-size: 22pt;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+
+    .header-sub {
+      font-size: 10pt;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    h2 {
+      font-size: 10pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      color: #1d4ed8;
+      margin-top: 20px;
+      margin-bottom: 8px;
+    }
+
+    p {
+      font-size: 10.5pt;
+      color: #374151;
+      margin-bottom: 10px;
+    }
+
+    .keywords {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 20px;
+    }
+
+    .kw {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      font-size: 9pt;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+
+    .footer {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+      margin-top: 24px;
+      font-size: 8.5pt;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    @media print {
+      body { padding: 0; max-width: 100%; }
+      @page { margin: 20mm 18mm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-label">Personal Flavour Pitch</div>
+    <h1>Aegis</h1>
+    <div class="header-sub">AI-Powered Data Breach Analyst — RAG, Hybrid Search & Agentic Tool Use</div>
+  </div>
+
+  <h2>What I Built</h2>
+  <p>
+    Aegis is an AI assistant that answers specific, quantitative questions about cybersecurity data breaches — grounded in the IBM Cost of a Data Breach Report 2024. The project was structured as an incremental build across six steps, starting from a basic LLM chat interface and ending with a full agentic pipeline capable of multi-step reasoning over a structured knowledge base.
+  </p>
+
+  <h2>The Problem I Was Investigating</h2>
+  <p>
+    Large language models answer from training data — which is stale, unverifiable, and confidently wrong for domain-specific questions. When asked about 2024 breach costs, an out-of-the-box GPT-4o would cite 2023 figures with full confidence. The core question I explored was: <em>how do you ground an LLM in a specific document, and how much does the quality of that grounding matter?</em>
+  </p>
+
+  <h2>What I Experimented With</h2>
+  <p>
+    I built the system step by step, treating each layer as an experiment. First I connected a basic chat interface to GPT-4o and documented where it hallucinated. Then I added RAG with vector search — which helped but still missed specific data tables. I improved retrieval with hybrid BM25 + vector search, which fixed keyword-match failures. I then replaced the passive RAG pipeline with active tool calling, letting the model decide when and what to retrieve. The final experiment was the most impactful: replacing the naive PDF loader with a layout-aware ingestion pipeline using Unstructured.io and GPT-4o vision to actually read the charts and tables that previous steps were silently dropping.
+  </p>
+
+  <h2>Key Finding</h2>
+  <p>
+    The biggest leverage point was not the retrieval strategy or the model — it was ingestion quality. A system with hybrid search and tool calling still gave wrong answers because the chart data was never correctly stored in the first place. Fixing ingestion (so ChromaDB contained real ImageSummary and TableSummary chunks from GPT-4o vision) immediately fixed answers that had been wrong across multiple previous steps. RAG is only as good as what was ingested.
+  </p>
+
+  <div class="keywords">
+    <span class="kw">RAG</span>
+    <span class="kw">Retrieval-Augmented Generation</span>
+    <span class="kw">Hybrid Search</span>
+    <span class="kw">BM25</span>
+    <span class="kw">Vector Search</span>
+    <span class="kw">ChromaDB</span>
+    <span class="kw">LangChain</span>
+    <span class="kw">Function Calling</span>
+    <span class="kw">Tool Use</span>
+    <span class="kw">Agentic AI</span>
+    <span class="kw">Document Ingestion</span>
+    <span class="kw">GPT-4o Vision</span>
+    <span class="kw">Unstructured.io</span>
+    <span class="kw">Cybersecurity</span>
+    <span class="kw">Knowledge Base</span>
+    <span class="kw">Hallucination Reduction</span>
+    <span class="kw">Streamlit</span>
+    <span class="kw">OpenAI</span>
+  </div>
+
+  <div class="footer">
+    <span>Aegis — Personal Flavour Pitch</span>
+    <span>Ctrl + P → Save as PDF</span>
+  </div>
+
+</body>
+</html>
