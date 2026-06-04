@@ -1,0 +1,9 @@
+{
+  "return_type": "tuple",
+  "length": 3,
+  "element_types": [
+    "str",
+    "str",
+    "list"
+  ]
+}

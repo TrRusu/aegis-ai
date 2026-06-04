@@ -1,0 +1,5 @@
+[
+  "cve_analyst",
+  "cost_analyst",
+  "compliance_analyst"
+]

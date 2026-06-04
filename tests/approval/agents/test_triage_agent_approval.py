@@ -2,15 +2,16 @@
 Approval tests for the breach triage agent.
 Captures the current output structure before any refactoring.
 """
+import json
 from unittest.mock import AsyncMock, patch
 
-from observability.fault_tolerance import FALLBACK_MESSAGE
+from approvaltests import verify
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+
 from agents.breach_triage_agent import run_agent
 
 
 def _make_agent_result(tool_names=None):
-    """Build a fake LangGraph result with tool call messages."""
-    from langchain_core.messages import AIMessage, ToolMessage, HumanMessage
 
     messages = [HumanMessage(content="test incident")]
 
@@ -35,26 +36,25 @@ def _make_agent_result(tool_names=None):
 @patch("agents.breach_triage_agent.MultiServerMCPClient")
 @patch("agents.breach_triage_agent.make_tools", return_value=[])
 @patch("agents.breach_triage_agent.create_react_agent")
-def test_run_agent_returns_tuple(mock_agent, mock_tools, mock_mcp, mock_llm):
+def test_run_agent_return_structure(mock_agent, mock_tools, mock_mcp, mock_llm):
     """Approval: run_agent returns a (str, list) tuple."""
     mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
-    mock_agent.return_value.ainvoke = AsyncMock(
-        return_value=_make_agent_result()
-    )
+    mock_agent.return_value.ainvoke = AsyncMock(return_value=_make_agent_result())
 
     result = run_agent("A ransomware attack on healthcare systems.")
 
-    assert isinstance(result, tuple)
-    assert len(result) == 2
-    assert isinstance(result[0], str)
-    assert isinstance(result[1], list)
+    verify(json.dumps({
+        "return_type": type(result).__name__,
+        "length": len(result),
+        "element_types": [type(x).__name__ for x in result],
+    }, indent=2))
 
 
 @patch("agents.breach_triage_agent.ChatOpenAI")
 @patch("agents.breach_triage_agent.MultiServerMCPClient")
 @patch("agents.breach_triage_agent.make_tools", return_value=[])
 @patch("agents.breach_triage_agent.create_react_agent")
-def test_run_agent_tool_calls_have_required_keys(mock_agent, mock_tools, mock_mcp, mock_llm):
+def test_run_agent_tool_call_entry_keys(mock_agent, mock_tools, mock_mcp, mock_llm):
     """Approval: each tool call entry has tool, input, and output keys."""
     mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
     mock_agent.return_value.ainvoke = AsyncMock(
@@ -63,20 +63,15 @@ def test_run_agent_tool_calls_have_required_keys(mock_agent, mock_tools, mock_mc
 
     _, tool_calls_log = run_agent("A ransomware attack on healthcare systems.")
 
-    assert len(tool_calls_log) == 1
-    entry = tool_calls_log[0]
-    assert "tool" in entry
-    assert "input" in entry
-    assert "output" in entry
-    assert entry["tool"] == "search_knowledge_base"
+    verify(json.dumps([sorted(entry.keys()) for entry in tool_calls_log], indent=2))
 
 
 @patch("agents.breach_triage_agent.ChatOpenAI")
 @patch("agents.breach_triage_agent.MultiServerMCPClient")
 @patch("agents.breach_triage_agent.make_tools", return_value=[])
 @patch("agents.breach_triage_agent.create_react_agent")
-def test_run_agent_captures_multiple_tool_calls(mock_agent, mock_tools, mock_mcp, mock_llm):
-    """Approval: all tool calls are captured when the agent calls multiple tools."""
+def test_run_agent_tool_call_sequence(mock_agent, mock_tools, mock_mcp, mock_llm):
+    """Approval: all tool calls are captured in order."""
     mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
     mock_agent.return_value.ainvoke = AsyncMock(
         return_value=_make_agent_result(
@@ -86,36 +81,31 @@ def test_run_agent_captures_multiple_tool_calls(mock_agent, mock_tools, mock_mcp
 
     _, tool_calls_log = run_agent("A ransomware attack on healthcare systems.")
 
-    assert len(tool_calls_log) == 3
-    assert tool_calls_log[0]["tool"] == "search_knowledge_base"
-    assert tool_calls_log[1]["tool"] == "lookup_cve"
-    assert tool_calls_log[2]["tool"] == "calculate_breach_cost"
+    verify(json.dumps([c["tool"] for c in tool_calls_log], indent=2))
 
 
 @patch("agents.breach_triage_agent.ChatOpenAI")
 @patch("agents.breach_triage_agent.MultiServerMCPClient")
 @patch("agents.breach_triage_agent.make_tools", return_value=[])
 @patch("agents.breach_triage_agent.create_react_agent")
-def test_run_agent_empty_tool_calls_when_no_tools_used(mock_agent, mock_tools, mock_mcp, mock_llm):
+def test_run_agent_no_tools_behavior(mock_agent, mock_tools, mock_mcp, mock_llm):
     """Approval: tool_calls_log is empty when the agent responds without calling any tools."""
     mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
-    mock_agent.return_value.ainvoke = AsyncMock(
-        return_value=_make_agent_result(tool_names=None)
-    )
+    mock_agent.return_value.ainvoke = AsyncMock(return_value=_make_agent_result(tool_names=None))
 
     _, tool_calls_log = run_agent("What is a data breach?")
 
-    assert tool_calls_log == []
+    verify(json.dumps(tool_calls_log, indent=2))
 
 
+@patch("agents.breach_triage_agent.ChatOpenAI")
 @patch("agents.breach_triage_agent.MultiServerMCPClient")
 @patch("agents.breach_triage_agent.make_tools", return_value=[])
 @patch("agents.breach_triage_agent.create_react_agent")
-def test_run_agent_returns_fallback_on_failure(mock_agent, mock_tools, mock_mcp):
+def test_run_agent_failure_behavior(mock_agent, mock_tools, mock_mcp, mock_llm):
     """Approval: run_agent returns fallback message and empty list on failure."""
     mock_mcp.return_value.get_tools = AsyncMock(side_effect=Exception("MCP failed"))
 
     response, tool_calls = run_agent("test incident")
 
-    assert response == FALLBACK_MESSAGE
-    assert tool_calls == []
+    verify(json.dumps({"response": response, "tool_calls": tool_calls}, indent=2))
