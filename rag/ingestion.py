@@ -10,7 +10,6 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.messages import HumanMessage
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-import chromadb
 from app.config import OPENAI_API_KEY, OPENAI_EMBEDDING_MODEL, OPENAI_MODEL
 
 _FIGURE_RE = re.compile(r"\bFig(?:ure)?\.?\s*\d+[A-Za-z]?", re.IGNORECASE)
