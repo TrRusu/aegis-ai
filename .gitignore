@@ -34,5 +34,8 @@ Thumbs.db
 # Logs
 *.log
 
+# Approvaltests received files (never commit these)
+*.received.txt
+
 # Portfolio documentation (local only)
 docs/portfolio/

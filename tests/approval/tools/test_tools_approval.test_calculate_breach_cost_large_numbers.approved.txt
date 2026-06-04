@@ -1,0 +1,1 @@
+Estimated breach cost: USD 169,000,000.00 (1,000,000 records x USD 169.00/record). Note: IBM cautions against this multiplication method for estimating real breach costs.
