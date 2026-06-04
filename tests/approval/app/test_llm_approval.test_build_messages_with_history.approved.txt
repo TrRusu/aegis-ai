@@ -1,0 +1,9 @@
+{
+  "count": 4,
+  "types": [
+    "SystemMessage",
+    "HumanMessage",
+    "AIMessage",
+    "HumanMessage"
+  ]
+}
