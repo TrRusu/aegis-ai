@@ -3,11 +3,15 @@ Approval tests for the tools module.
 Captures the current behavior before any refactoring.
 """
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from approvaltests import verify
+from langchain_core.documents import Document
+from langchain_core.messages import AIMessage
 
+from observability.fault_tolerance import FALLBACK_MESSAGE
 from tools.tools import make_tools
+from tools.chain import run_with_tools
 
 
 # ── calculate_breach_cost ──────────────────────────────────────────────────────
@@ -41,8 +45,6 @@ def test_calculate_breach_cost_large_numbers():
 @patch("tools.tools.build_retriever")
 def test_search_knowledge_base_formats_results(mock_retriever):
     """Approval: search_knowledge_base formats retrieved chunks with page numbers."""
-    from langchain_core.documents import Document
-
     mock_retriever.return_value.invoke.return_value = [
         Document(page_content="Healthcare breach cost was $9.77M", metadata={"page": 10}),
         Document(page_content="Average cost per record is $169", metadata={"page": 5}),
@@ -70,3 +72,51 @@ def test_make_tools_returns_two_tools():
     tools = make_tools()
 
     verify(json.dumps([t.name for t in tools], indent=2))
+
+
+# ── run_with_tools ─────────────────────────────────────────────────────────────
+
+@patch("tools.chain.ChatOpenAI")
+@patch("tools.chain.MultiServerMCPClient")
+@patch("tools.chain.make_tools", return_value=[])
+def test_run_with_tools_returns_tuple(mock_tools, mock_mcp, mock_llm):
+    """Approval: run_with_tools returns a (str, list) tuple."""
+    mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
+    ai_msg = AIMessage(content="Final answer.")
+    ai_msg.tool_calls = []
+    mock_llm.return_value.bind_tools.return_value.ainvoke = AsyncMock(return_value=ai_msg)
+
+    result = run_with_tools("What is the average breach cost?", [], 0.2, 1024)
+
+    verify(json.dumps({
+        "return_type": type(result).__name__,
+        "length": len(result),
+        "element_types": [type(x).__name__ for x in result],
+    }, indent=2))
+
+
+@patch("tools.chain.ChatOpenAI")
+@patch("tools.chain.MultiServerMCPClient")
+@patch("tools.chain.make_tools", return_value=[])
+def test_run_with_tools_empty_tool_calls_when_no_tools_used(mock_tools, mock_mcp, mock_llm):
+    """Approval: tool_calls_log is empty when the LLM responds without calling any tools."""
+    mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
+    ai_msg = AIMessage(content="Direct answer.")
+    ai_msg.tool_calls = []
+    mock_llm.return_value.bind_tools.return_value.ainvoke = AsyncMock(return_value=ai_msg)
+
+    _, tool_calls_log = run_with_tools("Hello", [], 0.2, 1024)
+
+    verify(json.dumps(tool_calls_log, indent=2))
+
+
+@patch("tools.chain.ChatOpenAI")
+@patch("tools.chain.MultiServerMCPClient")
+@patch("tools.chain.make_tools", return_value=[])
+def test_run_with_tools_failure_behavior(mock_tools, mock_mcp, mock_llm):
+    """Approval: run_with_tools returns fallback and empty list on failure."""
+    mock_mcp.return_value.get_tools = AsyncMock(side_effect=Exception("MCP failed"))
+
+    response, tool_calls = run_with_tools("test", [], 0.2, 1024)
+
+    verify(json.dumps({"response": response, "tool_calls": tool_calls}, indent=2))
