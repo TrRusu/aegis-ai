@@ -1,0 +1,4 @@
+{
+  "total_calls": 3,
+  "equals_max_retries": true
+}

@@ -1,0 +1,5 @@
+{
+  "TIMEOUT_SECONDS": 60,
+  "MAX_RETRIES": 3,
+  "FALLBACK_MESSAGE": "Aegis is temporarily unavailable \u2014 the AI service did not respond in time. Please try again in a moment."
+}
