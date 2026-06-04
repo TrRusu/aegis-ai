@@ -47,7 +47,7 @@ jobs:
 
       - name: Verify deployment is live
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.STREAMLIT_APP_URL }})
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L ${{ secrets.STREAMLIT_APP_URL }})
           echo "Streamlit response: $STATUS"
           if [ "$STATUS" != "200" ]; then
             echo "Deployment verification failed — HTTP $STATUS"
