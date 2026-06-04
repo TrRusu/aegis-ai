@@ -1,0 +1,7 @@
+[lint]
+ignore = [
+    "E402",  # Module level import not at top of file — will be fixed during SOLID refactoring
+]
+
+[lint.per-file-ignores]
+"ui/app.py" = ["E402"]
