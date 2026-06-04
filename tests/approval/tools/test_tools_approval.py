@@ -3,13 +3,12 @@ Approval tests for the tools module.
 Captures the current behavior before any refactoring.
 """
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from approvaltests import verify
 from langchain_core.documents import Document
 from langchain_core.messages import AIMessage
 
-from observability.fault_tolerance import FALLBACK_MESSAGE
 from tools.tools import make_tools
 from tools.chain import run_with_tools
 
