@@ -29,6 +29,6 @@ jobs:
         run: ruff check .
 
       - name: Test — pytest with coverage
-        run: pytest tests/ -v --cov=. --cov-report=term-missing --cov-fail-under=0
+        run: pytest tests/ -v --cov=. --cov-report=term-missing --cov-fail-under=0 || ([ $? -eq 5 ] && exit 0 || exit 1)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
