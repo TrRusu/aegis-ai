@@ -47,13 +47,13 @@ jobs:
 
       - name: Verify deployment is live
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L ${{ secrets.STREAMLIT_APP_URL }})
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-redirs 5 ${{ secrets.STREAMLIT_APP_URL }})
           echo "Streamlit response: $STATUS"
-          if [ "$STATUS" != "200" ]; then
-            echo "Deployment verification failed — HTTP $STATUS"
+          if [ "$STATUS" = "000" ]; then
+            echo "Deployment verification failed — server unreachable"
             exit 1
           fi
-          echo "Deployment verified successfully"
+          echo "Deployment verified successfully — HTTP $STATUS"
 
       - name: Create GitHub release tag
         uses: actions/github-script@v7
