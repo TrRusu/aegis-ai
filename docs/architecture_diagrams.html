@@ -540,6 +540,600 @@ flowchart TB
     </div>
   </div>
 
+  <!-- ── STEP 7 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 7</span>
+      <span class="step-title">Model Context Protocol (MCP)</span>
+    </div>
+    <p class="step-subtitle">A standalone MCP server exposes a remote lookup_cve tool over stdio. The client merges it with local tools at runtime — the LLM sees one unified tool set.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    subgraph MCP [" MCP Server — separate process "]
+      CVE_SRV[cve_server.py\nFastMCP] -->|NVD API| NVD[(NVD REST API)]
+    end
+
+    subgraph ING [" Ingestion — run once "]
+      PDF[(IBM PDF)] -->|chunk + embed| VDB[(ChromaDB)]
+    end
+
+    SB[Sidebar] -->|params| UI
+    U([User]) --> UI[Streamlit UI]
+    UI --> ASYNC[asyncio.run\nrun_with_tools]
+
+    ASYNC --> MCP_CL[MultiServerMCPClient\nstdio transport]
+    MCP_CL <-->|stdio| CVE_SRV
+
+    ASYNC --> LLM1[LLM Round 1\nbind_tools — all tools]
+    LLM1 -->|tool_calls| DISP{Tool Dispatch}
+
+    DISP --> SKB[search_knowledge_base]
+    DISP --> CBC[calculate_breach_cost]
+    DISP --> LCVE[lookup_cve\nMCP tool]
+
+    SKB -.->|query| VDB
+    LCVE -.->|forward| MCP_CL
+
+    SKB -->|ToolMessage| LLM2[LLM Round N]
+    CBC -->|ToolMessage| LLM2
+    LCVE -->|ToolMessage| LLM2
+    LLM2 --> UI
+    UI --> R([Response + Tool Trace])
+
+    style MCP_CL fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style CVE_SRV fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style NVD     fill:#065f46,stroke:#10b981,color:#e0e0e0
+    style LCVE    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style ASYNC   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+
+    style PDF  fill:#1a2e23,stroke:#374151,color:#6b7280
+    style VDB  fill:#1a2e23,stroke:#374151,color:#6b7280
+    style SB   fill:#374151,stroke:#4b5563,color:#9ca3af
+    style U    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI   fill:#374151,stroke:#4b5563,color:#9ca3af
+    style LLM1 fill:#374151,stroke:#4b5563,color:#9ca3af
+    style DISP fill:#374151,stroke:#4b5563,color:#9ca3af
+    style SKB  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style CBC  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style LLM2 fill:#374151,stroke:#4b5563,color:#9ca3af
+    style R    fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 6</div>
+      <ul>
+        <li><span class="added">MCP server introduced as a separate process</span> — cve_server.py runs independently, exposing lookup_cve over the stdio transport. It can be replaced with any MCP-compatible server without touching client code.</li>
+        <li><span class="added">MultiServerMCPClient connects at runtime</span> — the client launches the server as a child process via stdio and retrieves its tool definitions dynamically. No hardcoded tool list.</li>
+        <li><span class="added">lookup_cve added to the unified tool set</span> — the LLM sees local tools and MCP tools identically via bind_tools(). It has no awareness of which tools are local and which are remote.</li>
+        <li><span class="added">Execution loop converted to async</span> — MultiServerMCPClient is async-only, so run_with_tools() now wraps an async inner function with asyncio.run(), keeping the public interface synchronous.</li>
+        <li>The ingestion pipeline, retrieval layer, and local tools are completely unchanged.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW mcp_servers/cve_server.py</span>
+      <span class="tag tag-mod">MOD tools/chain.py — async rewrite</span>
+      <span class="tag tag-mod">MOD ui/app.py — MCP tools sidebar section</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 8 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 8</span>
+      <span class="step-title">Guardrails — Prompt Injection Detection</span>
+    </div>
+    <p class="step-subtitle">Every user message passes through a dedicated LLM classifier before reaching any pipeline. Messages scoring above 0.7 for injection risk are blocked and never reach the model, retriever, or tools.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    U([User]) --> UI[Streamlit UI]
+    UI --> GUARD[check_prompt_injection\nLLM classifier · temperature=0.0\nfew-shot examples · max_tokens=5]
+
+    GUARD -->|score >= 0.7| BLOCK([Blocked — warning shown])
+    GUARD -->|score < 0.7| PIPE{Mode Router\nChat / RAG / Tools}
+
+    PIPE --> CHAT[Chat pipeline]
+    PIPE --> RAG[RAG pipeline]
+    PIPE --> TOOLS[Tools + MCP pipeline]
+
+    style GUARD fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style BLOCK fill:#7f1d1d,stroke:#ef4444,color:#fca5a5
+
+    style U     fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style PIPE  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style CHAT  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style RAG   fill:#374151,stroke:#4b5563,color:#9ca3af
+    style TOOLS fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 7</div>
+      <ul>
+        <li><span class="added">Hard guardrail added at the UI entry point</span> — check_prompt_injection() runs before any mode handler. It is a separate LLM call that the main pipeline never influences.</li>
+        <li><span class="added">Few-shot classification</span> — the detector's system prompt contains labelled examples spanning 0.0 to 1.0. It generalises to novel attacks without a rules list.</li>
+        <li><span class="added">Threshold at 0.7</span> — allows legitimate security questions through while blocking direct injection, persona hijacking, and defensive reframing attacks.</li>
+        <li><span class="removed">Soft guardrail replaced</span> — the single system prompt line from Step 1 ("never provide instructions...") could be bypassed with context manipulation. The new guardrail is code, not a request.</li>
+        <li>All existing pipelines (Chat, RAG, Tools) are unchanged — the guardrail wraps them without touching their internals.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW guardrails/prompt_injection.py</span>
+      <span class="tag tag-mod">MOD ui/app.py — guardrail check before all mode handlers</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 9 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 9</span>
+      <span class="step-title">Observability & Fault Tolerance</span>
+    </div>
+    <p class="step-subtitle">Every LLM call is wrapped with structured logging, a 60-second timeout, and up to 3 retries with exponential backoff. Exhausted retries return a clean fallback message — never a Python traceback.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    U([User]) --> UI[Streamlit UI]
+    UI --> GUARD[Guardrail check]
+    GUARD -->|pass| RWT[run_with_tools\n@log_llm_call]
+
+    RWT --> RETRY[@with_retry\n3 attempts · exp backoff 1s→10s]
+    RETRY --> TIMEOUT[invoke_with_timeout\n60s hard cap]
+    TIMEOUT --> LLM[LLM Round N\nbind_tools]
+    LLM -->|TimeoutError / APIError| RETRY
+    RETRY -->|3 failures| FB([Fallback message])
+
+    LLM -->|success| UI
+    UI --> R([Response])
+
+    style RWT     fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style RETRY   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style TIMEOUT fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style FB      fill:#7f1d1d,stroke:#ef4444,color:#fca5a5
+
+    style U     fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style GUARD fill:#374151,stroke:#4b5563,color:#9ca3af
+    style LLM   fill:#374151,stroke:#4b5563,color:#9ca3af
+    style R     fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 8</div>
+      <ul>
+        <li><span class="added">@log_llm_call decorator added</span> — wraps any LLM function and logs the start time, elapsed duration, and any errors. Auto-detects async vs sync functions.</li>
+        <li><span class="added">@with_retry() added via tenacity</span> — 3 attempts with exponential backoff (1s, 2s, 4s, capped at 10s). Logs a WARNING before each retry sleep so activity is visible in the terminal.</li>
+        <li><span class="added">invoke_with_timeout() added</span> — asyncio.wait_for() imposes a 60-second hard cap on each LLM round. TimeoutError triggers the retry mechanism.</li>
+        <li><span class="added">FALLBACK_MESSAGE returned on exhaustion</span> — after 3 failures the user sees a clean message instead of a Python traceback. The fallback is applied at the outermost synchronous boundary.</li>
+        <li>The guardrail, tool definitions, MCP server, and retrieval pipeline are unchanged.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW observability/logging_setup.py</span>
+      <span class="tag tag-new">NEW observability/fault_tolerance.py</span>
+      <span class="tag tag-mod">MOD tools/chain.py — wrapped with retry + timeout</span>
+      <span class="tag tag-mod">MOD app/rag_chain.py — wrapped with @log_llm_call</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 10 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 10</span>
+      <span class="step-title">Implementing AI Agents — ReAct</span>
+    </div>
+    <p class="step-subtitle">A LangGraph ReAct agent autonomously investigates incidents. It decides which tools to call, in what order, based on what it discovers — without user direction.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    U([User task]) --> UI[Streamlit UI]
+    UI --> GUARD[Guardrail]
+    GUARD -->|pass| AGENT[create_react_agent\nLangGraph ReAct loop]
+
+    subgraph REACT [" ReAct Loop — managed by LangGraph "]
+      R1[Reason — what do I need?] --> ACT[Act — call tool]
+      ACT --> OBS[Observe — read result]
+      OBS --> R2{Enough info?}
+      R2 -->|no| R1
+      R2 -->|yes| OUT[Final answer]
+    end
+
+    AGENT --> REACT
+    ACT --> SKB[search_knowledge_base]
+    ACT --> CBC[calculate_breach_cost]
+    ACT --> LCVE[lookup_cve MCP]
+
+    OUT --> UI
+    UI --> R([Structured triage report\n+ tool call trace])
+
+    style AGENT fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style R1    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style ACT   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style OBS   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style R2    fill:#7c3aed,stroke:#a855f7,color:#e0e0e0
+    style OUT   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style R     fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+
+    style U     fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style GUARD fill:#374151,stroke:#4b5563,color:#9ca3af
+    style SKB   fill:#374151,stroke:#4b5563,color:#9ca3af
+    style CBC   fill:#374151,stroke:#4b5563,color:#9ca3af
+    style LCVE  fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 9</div>
+      <ul>
+        <li><span class="removed">Manual tool execution loop replaced</span> — in Tools mode, we controlled the loop (call tools, collect ToolMessages, re-invoke LLM). The agent manages this loop internally.</li>
+        <li><span class="added">LangGraph create_react_agent introduced</span> — implements the full Reason → Act → Observe cycle without manual orchestration. The loop continues until the agent determines it has enough information.</li>
+        <li><span class="added">Autonomous investigation</span> — given only an incident description, the agent decides which tools to call and in what order based on what it discovers, not what the user asks.</li>
+        <li><span class="added">Structured output enforced via system prompt</span> — the agent always produces a report with fixed sections (Incident Summary, CVE Analysis, Financial Impact, Recommended Actions).</li>
+        <li>The same tools, guardrail, observability, and MCP connection are reused unchanged.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW agents/breach_triage_agent.py</span>
+      <span class="tag tag-mod">MOD ui/app.py — Agent mode added</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 11 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 11</span>
+      <span class="step-title">Simple Agentic Workflows — Sequential StateGraph</span>
+    </div>
+    <p class="step-subtitle">Three specialised agents run in a fixed sequence over shared state. Each reads what the previous wrote and adds its own output. The workflow — not the LLM — controls execution order.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    U([User incident]) --> UI[Streamlit UI]
+    UI --> GUARD[Guardrail]
+    GUARD --> WF[StateGraph\nrun_workflow]
+
+    subgraph STATE [" BreachWorkflowState — shared across all nodes "]
+      S1[incident] --> S2[assessment]
+      S2 --> S3[research]
+      S3 --> S4[report]
+    end
+
+    WF --> N1[Node 1\nBreachAssessmentAgent\npure LLM — no tools]
+    N1 -->|writes assessment| N2[Node 2\nThreatResearchAgent\nReAct + all tools]
+    N2 -->|writes research| N3[Node 3\nReportCompilerAgent\npure LLM — no tools]
+    N3 -->|writes report| UI
+    UI --> R([Structured report\n+ Research tool trace])
+
+    style WF fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style N1 fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style N2 fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style N3 fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style R  fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+
+    style STATE fill:#12141e,stroke:#2d3145,color:#6b7280
+    style S1 fill:#12141e,stroke:#2d3145,color:#6b7280
+    style S2 fill:#12141e,stroke:#2d3145,color:#6b7280
+    style S3 fill:#12141e,stroke:#2d3145,color:#6b7280
+    style S4 fill:#12141e,stroke:#2d3145,color:#6b7280
+
+    style U     fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style GUARD fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 10</div>
+      <ul>
+        <li><span class="removed">Single agent doing everything replaced</span> — one agent decided its own investigation path, which could miss steps or conflate reasoning with research.</li>
+        <li><span class="added">StateGraph with three specialised nodes</span> — each agent has one role: extract facts (Node 1), research with tools (Node 2), synthesize a report (Node 3).</li>
+        <li><span class="added">Shared state (TypedDict) passed between nodes</span> — each node reads the full state and writes only its own field. LangGraph merges the return dict automatically.</li>
+        <li><span class="added">Node 2 is itself a ReAct agent</span> — workflow nodes can embed full agents. The workflow controls when it runs; within its turn it reasons autonomously.</li>
+        <li>Nodes 1 and 3 use pure LLM reasoning — no tools — keeping extraction and synthesis fast and deterministic.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW agents/breach_workflow.py</span>
+      <span class="tag tag-mod">MOD ui/app.py — Workflow mode added</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 12 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 12</span>
+      <span class="step-title">Composing Multiple Agentic Workflows</span>
+    </div>
+    <p class="step-subtitle">Parallel analysis runs two agents simultaneously via asyncio.gather. A severity router then directs flow to either a Critical or Standard response agent. Code decides routing.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    U([User incident]) --> UI[Streamlit UI]
+    UI --> GUARD[Guardrail]
+    GUARD --> CWF[StateGraph\nrun_composed_workflow]
+
+    CWF --> PAR[parallel_analysis_node\nasyncio.gather]
+    PAR --> TA[ThreatFeedbackAgent\nLLM — threat + severity]
+    PAR --> CA[ComplianceFeedbackAgent\nLLM — regulations]
+
+    TA -->|threat_analysis + severity| ROUTER{severity_router\nadd_conditional_edges}
+    CA -->|compliance_analysis| ROUTER
+
+    ROUTER -->|Critical / High| CRIT[CriticalResponseAgent\nReAct + tools]
+    ROUTER -->|Medium / Low| STD[StandardResponseAgent\nReAct + tools]
+
+    CRIT -->|response_plan| SYN[synthesis_node\nLLM — final report]
+    STD  -->|response_plan| SYN
+
+    SYN --> UI
+    UI --> R([Report + tool trace])
+
+    style PAR    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style TA     fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style CA     fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style ROUTER fill:#7c3aed,stroke:#a855f7,color:#e0e0e0
+    style CRIT   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style STD    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style SYN    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style CWF    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style R      fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+
+    style U     fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style GUARD fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 11</div>
+      <ul>
+        <li><span class="removed">Fixed sequential order replaced</span> — Step 11 ran every agent in the same path regardless of the incident.</li>
+        <li><span class="added">Parallel execution via asyncio.gather</span> — ThreatFeedbackAgent and ComplianceFeedbackAgent run concurrently in one node. Independent analyses that don't depend on each other run simultaneously, halving the time for this stage.</li>
+        <li><span class="added">Conditional routing via add_conditional_edges</span> — severity_router reads state["severity"] and returns "critical" or "standard". LangGraph routes to the corresponding node. Code decides routing.</li>
+        <li><span class="added">Two specialised response agents</span> — CriticalResponseAgent produces an immediate 24h/72h/2-week action plan; StandardResponseAgent produces standard remediation steps. Both are ReAct agents with tool access.</li>
+        <li><span class="added">Synthesis node always runs last</span> — combines all outputs into a final structured report regardless of which routing path was taken.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW agents/composed_workflow.py</span>
+      <span class="tag tag-mod">MOD ui/app.py — Composed mode added</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 13 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 13</span>
+      <span class="step-title">Supervisor Pattern — LLM-Driven Routing</span>
+    </div>
+    <p class="step-subtitle">An LLM supervisor decides at runtime which specialist sub-agents to invoke. Specialists are exposed as tools. The LLM — not code — decides routing based on incident content.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    U([User incident]) --> UI[Streamlit UI]
+    UI --> GUARD[Guardrail]
+    GUARD --> SUP[Supervisor ReAct Agent\ncreate_react_agent]
+
+    SUP -->|reasons about incident| DEC{LLM decides\nwhich specialists\nto invoke}
+
+    DEC -->|CVE IDs present| CVE_T[cve_analyst tool\nThreadPoolExecutor]
+    DEC -->|industry + records known| COST_T[cost_analyst tool\nThreadPoolExecutor]
+    DEC -->|regulated data| COMP_T[compliance_analyst tool\nThreadPoolExecutor]
+
+    CVE_T --> CVE_A[CveAnalystAgent\nReAct + lookup_cve MCP]
+    COST_T --> COST_A[CostAnalystAgent\nReAct + KB + calculate]
+    COMP_T --> COMP_A[ComplianceAnalystAgent\npure LLM]
+
+    CVE_A -->|specialist output| SUP
+    COST_A -->|specialist output| SUP
+    COMP_A -->|specialist output| SUP
+
+    SUP --> UI
+    UI --> R([Final report\n+ specialists invoked])
+
+    style SUP    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style DEC    fill:#7c3aed,stroke:#a855f7,color:#e0e0e0
+    style CVE_T  fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style COST_T fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style COMP_T fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style CVE_A  fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style COST_A fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style COMP_A fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style R      fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+
+    style U     fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style GUARD fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 12</div>
+      <ul>
+        <li><span class="removed">Code-based routing replaced</span> — Step 12 routed by severity string extracted from threat analysis. Fixed rules break down when routing depends on multiple overlapping factors.</li>
+        <li><span class="added">LLM supervisor decides routing</span> — the supervisor reasons about the incident content and calls only the specialists that are relevant, in the order it determines. No hardcoded conditions.</li>
+        <li><span class="added">Specialists exposed as @tool functions</span> — each specialist is a synchronous tool whose body spins up a full ReAct agent internally. From the supervisor's perspective they are identical to any other tool.</li>
+        <li><span class="added">ThreadPoolExecutor for async nesting</span> — specialist tools are sync functions called from inside an already-running async event loop. Each runs its async code in a fresh thread with its own event loop, avoiding RuntimeError.</li>
+        <li>The supervisor may invoke zero, one, or all three specialists depending on the incident. It explains which it skipped and why.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW agents/supervisor_workflow.py</span>
+      <span class="tag tag-mod">MOD ui/app.py — Supervisor mode added</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 14 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 14</span>
+      <span class="step-title">Human-in-the-Loop</span>
+    </div>
+    <p class="step-subtitle">Low and medium severity incidents pause after Phase 1 and wait for human approval. Session state persists the pending proposal across Streamlit rerenders. Phase 2 runs only after a human decision.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    U([User incident]) --> UI[Streamlit UI]
+    UI --> GUARD[Guardrail]
+    GUARD --> P1[run_hitl_phase1\nspecialists gather intelligence]
+
+    P1 --> SEV{requires_approval\nseverity?}
+
+    SEV -->|High / Critical| P2A[run_hitl_phase2\nAUTO-APPROVED\nfinal report immediately]
+
+    SEV -->|Low / Medium / Unknown| SS[st.session_state\nhitl_pending\nst.rerun]
+    SS --> CARD[Approval card rendered\nApprove / Reject buttons]
+    CARD -->|human clicks| P2B[run_hitl_phase2\ndecision + reason\nfinal report]
+
+    P2A --> UI
+    P2B --> UI
+    UI --> R([Final report\nwith human decision recorded])
+
+    style P1   fill:#1e40af,stroke:#3b82f6,color:#e0e0f0,color:#e0e0e0
+    style SEV  fill:#7c3aed,stroke:#a855f7,color:#e0e0e0
+    style SS   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style CARD fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style P2A  fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style P2B  fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style R    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+
+    style U     fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style GUARD fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 13</div>
+      <ul>
+        <li><span class="added">Two-phase separation introduced</span> — Phase 1 gathers intelligence and assesses severity. Phase 2 compiles the final report. They are separate function calls that can run minutes apart.</li>
+        <li><span class="added">Approval gate for Low / Medium / Unknown severity</span> — the inverted threshold gates on ambiguity rather than stakes. A critical ransomware attack has a clear response; a low-severity accidental disclosure does not.</li>
+        <li><span class="added">Session state as the pause mechanism</span> — Python has no native way to pause mid-execution. The pending proposal is stored in st.session_state["hitl_pending"] and Phase 2 waits until a human decision arrives.</li>
+        <li><span class="added">Forced rerun after pending state is set</span> — st.rerun() fires after the Phase 1 message is appended, so the approval card renders on the next Streamlit cycle rather than being blocked by st.chat_input.</li>
+        <li>High and Critical severity incidents bypass the gate — they are auto-approved because speed matters and the response is generally clear-cut.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW agents/supervisor_hitl.py</span>
+      <span class="tag tag-mod">MOD ui/app.py — HITL mode + approval card</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 15 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 15</span>
+      <span class="step-title">Multimodal Agents — Image Enrichment</span>
+    </div>
+    <p class="step-subtitle">An optional image upload enriches the incident description before any agent sees it. GPT-4o vision extracts security-relevant details and merges them into the text. If no image is uploaded, the pipeline runs unchanged.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    U([User incident]) --> UI[Streamlit UI]
+    IMG([Optional image\nscreenshot upload]) --> UI
+
+    UI --> GUARD[Guardrail]
+    GUARD --> ENR[enrich_with_image\nGPT-4o vision]
+
+    ENR -->|no image| ORIG[Original incident\nno API call made]
+    ENR -->|image provided| B64[base64 encode\ndata URL]
+    B64 --> V[GPT-4o vision\nextract security details]
+    V --> MERGE[Merged enriched\nincident description]
+
+    ORIG --> AGENT[run_agent\nReAct triage]
+    MERGE --> AGENT
+
+    AGENT --> UI
+    UI --> R([Enriched description expander\n+ triage report + tool trace])
+
+    style ENR   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style B64   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style V     fill:#7c3aed,stroke:#a855f7,color:#e0e0e0
+    style MERGE fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style IMG   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style R     fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+
+    style U     fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style GUARD fill:#374151,stroke:#4b5563,color:#9ca3af
+    style ORIG  fill:#374151,stroke:#4b5563,color:#9ca3af
+    style AGENT fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 14</div>
+      <ul>
+        <li><span class="added">Image upload added to the sidebar</span> — the user can optionally attach a screenshot of a security alert, network monitor, malware warning, or anomaly dashboard before submitting an incident.</li>
+        <li><span class="added">enrich_with_image() runs before any agent</span> — GPT-4o vision reads the image, extracts all visible security-relevant details, and merges them into the incident description as a single coherent paragraph.</li>
+        <li><span class="added">Graceful no-op when no image provided</span> — if image_bytes is None, the function returns the original description unchanged without making any API call. Zero overhead.</li>
+        <li><span class="added">Base64 encoding for inline image delivery</span> — images are sent as data URLs (data:image/png;base64,...) directly in the message. No external storage or URL required.</li>
+        <li>The downstream triage agent is completely unchanged — it receives a richer text description and produces a better report without knowing an image was involved.</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW agents/multimodal_agent.py</span>
+      <span class="tag tag-mod">MOD ui/app.py — Multimodal mode + image uploader</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 16 ──────────────────────────────────────────────────────────────── -->
+  <div class="step">
+    <div class="step-header">
+      <span class="step-badge">STEP 16</span>
+      <span class="step-title">Agent-to-Agent (A2A)</span>
+    </div>
+    <p class="step-subtitle">A specialised ThreatIntelligenceAgent runs as a standalone FastAPI service on port 8888. The main app calls it over HTTP. Two completely independent processes — no shared code, no shared memory.</p>
+    <div class="diagram-wrapper">
+      <div class="mermaid">
+flowchart TB
+    subgraph MAIN [" Main App — Streamlit port 8501 "]
+      U([User]) --> UI[Streamlit UI]
+      UI --> GUARD[Guardrail]
+      GUARD --> AVAIL{is_server\navailable?}
+      AVAIL -->|offline| ERR([Error — start server first])
+      AVAIL -->|online| CLIENT[call_threat_intel_agent\nhttpx POST /run]
+    end
+
+    subgraph REMOTE [" Remote Agent — FastAPI port 8888 "]
+      SRV[threat_intel_server.py\nFastAPI] --> CARD[GET /.well-known\n/agent-card.json]
+      SRV --> RUN[POST /run\nThreatIntelligenceAgent]
+      RUN --> GPTM[GPT-4o\nMITRE ATT&CK mapping]
+    end
+
+    CLIENT -->|POST /run — incident| SRV
+    SRV -->|analysis JSON| CLIENT
+    CLIENT --> UI
+    UI --> R([MITRE ATT&CK report])
+
+    style CLIENT fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style AVAIL  fill:#7c3aed,stroke:#a855f7,color:#e0e0e0
+    style SRV    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style CARD   fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style RUN    fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style GPTM   fill:#7c3aed,stroke:#a855f7,color:#e0e0e0
+    style R      fill:#1e40af,stroke:#3b82f6,color:#e0e0e0
+    style ERR    fill:#7f1d1d,stroke:#ef4444,color:#fca5a5
+
+    style U     fill:#374151,stroke:#4b5563,color:#9ca3af
+    style UI    fill:#374151,stroke:#4b5563,color:#9ca3af
+    style GUARD fill:#374151,stroke:#4b5563,color:#9ca3af
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-title">What changed from Step 15</div>
+      <ul>
+        <li><span class="removed">All agents ran inside the Streamlit process</span> — every previous step added capabilities within the same Python process. A2A breaks that constraint entirely.</li>
+        <li><span class="added">Standalone FastAPI server introduced</span> — threat_intel_server.py runs as a completely separate process on port 8888. It has its own LLM client, its own config, and can be restarted independently.</li>
+        <li><span class="added">AgentCard published at /.well-known/agent-card.json</span> — clients can discover what the agent does, what skills it has, and how to call it without reading source code.</li>
+        <li><span class="added">HTTP/JSON protocol for agent communication</span> — the main app calls POST /run with an incident string and receives an analysis string. No shared code path between client and server.</li>
+        <li><span class="added">Online/offline detection</span> — is_server_available() probes the server before every request. The sidebar shows green/red status and the chat handler returns a clear error if the server is down.</li>
+        <li>This is the final architectural evolution: local functions (Step 5) → in-process agents (Step 10) → distributed agents over HTTP (Step 16).</li>
+      </ul>
+    </div>
+    <div class="change-note">
+      <span class="tag tag-new">NEW a2a_server/threat_intel_server.py</span>
+      <span class="tag tag-new">NEW agents/a2a_client.py</span>
+      <span class="tag tag-mod">MOD ui/app.py — A2A mode + agent card sidebar</span>
+    </div>
+  </div>
+
   <script>
     mermaid.initialize({
       startOnLoad: true,
