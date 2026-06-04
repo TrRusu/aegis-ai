@@ -6,7 +6,6 @@ import json
 from unittest.mock import patch
 
 from approvaltests import verify
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from app.llm import build_llm, build_messages
 

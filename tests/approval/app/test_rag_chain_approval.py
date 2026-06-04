@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 from approvaltests import verify
 from langchain_core.documents import Document
 
-from observability.fault_tolerance import FALLBACK_MESSAGE
 from app.rag_chain import build_rag_response
 
 
