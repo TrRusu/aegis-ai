@@ -28,7 +28,7 @@ jobs:
       - name: Lint — ruff
         run: ruff check .
 
-      - name: Test — pytest
-        run: pytest tests/ -v -p no:cacheprovider --ignore-glob="*/__init__.py" || true
+      - name: Test — pytest with coverage
+        run: pytest tests/ -v --cov=. --cov-report=term-missing --cov-fail-under=0
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
