@@ -2,7 +2,6 @@
 Approval tests for observability/logging_setup.py.
 Captures the current behavior before any refactoring.
 """
-import json
 
 from approvaltests import verify
 
