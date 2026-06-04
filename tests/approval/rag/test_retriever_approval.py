@@ -1,11 +1,12 @@
 """
 Approval tests for the retriever output structure.
-These tests capture the CURRENT behavior before any refactoring.
-If refactoring breaks the retriever interface, these tests will fail.
+Captures the current behavior before any refactoring.
 """
+import json
 from unittest.mock import MagicMock, patch
 
-from langchain_classic.retrievers import EnsembleRetriever
+from approvaltests import verify
+
 from langchain_community.retrievers import BM25Retriever
 from langchain_core.documents import Document
 
@@ -13,7 +14,6 @@ from rag.retriever import build_retriever
 
 
 def _make_mock_vectorstore(docs=None):
-    """Create a mock ChromaDB vectorstore returning fake documents."""
     if docs is None:
         docs = [
             Document(page_content="Healthcare breach cost was $9.77M", metadata={"source": "test.pdf", "page": 10}),
@@ -30,24 +30,24 @@ def _make_mock_vectorstore(docs=None):
 
 @patch("rag.retriever.Chroma")
 @patch("rag.retriever.OpenAIEmbeddings")
-def test_vector_retriever_returns_documents(mock_embeddings, mock_chroma):
-    """Approval: vector retriever returns a list of Document objects."""
+def test_vector_retriever_document_structure(mock_embeddings, mock_chroma):
+    """Approval: vector retriever returns documents with correct structure."""
     mock_vs, expected_docs = _make_mock_vectorstore()
     mock_chroma.return_value = mock_vs
 
     retriever = build_retriever(k=2, hybrid=False)
     results = retriever.invoke("healthcare breach cost")
 
-    assert isinstance(results, list)
-    assert len(results) == 2
-    assert all(isinstance(doc, Document) for doc in results)
-    assert all(hasattr(doc, "page_content") for doc in results)
-    assert all(hasattr(doc, "metadata") for doc in results)
+    verify(json.dumps({
+        "count": len(results),
+        "fields": sorted(results[0].metadata.keys()) if results else [],
+        "has_page_content": all(len(d.page_content) > 0 for d in results),
+    }, indent=2))
 
 
 @patch("rag.retriever.Chroma")
 @patch("rag.retriever.OpenAIEmbeddings")
-def test_hybrid_retriever_returns_ensemble(mock_embeddings, mock_chroma):
+def test_hybrid_retriever_type(mock_embeddings, mock_chroma):
     """Approval: hybrid=True returns an EnsembleRetriever."""
     docs = [
         Document(page_content="Healthcare breach cost was $9.77M", metadata={"source": "test.pdf", "page": 10}),
@@ -64,19 +64,20 @@ def test_hybrid_retriever_returns_ensemble(mock_embeddings, mock_chroma):
 
     retriever = build_retriever(k=2, hybrid=True)
 
-    assert isinstance(retriever, EnsembleRetriever)
+    verify(type(retriever).__name__)
 
 
 @patch("rag.retriever.Chroma")
 @patch("rag.retriever.OpenAIEmbeddings")
-def test_document_structure_has_required_fields(mock_embeddings, mock_chroma):
-    """Approval: each retrieved document has page_content and metadata with source."""
+def test_retrieved_document_metadata_fields(mock_embeddings, mock_chroma):
+    """Approval: each retrieved document has required metadata fields."""
     mock_vs, expected_docs = _make_mock_vectorstore()
     mock_chroma.return_value = mock_vs
 
     retriever = build_retriever(k=2, hybrid=False)
     results = retriever.invoke("test query")
 
-    for doc in results:
-        assert "source" in doc.metadata
-        assert len(doc.page_content) > 0
+    verify(json.dumps({
+        "all_have_source": all("source" in d.metadata for d in results),
+        "all_have_page": all("page" in d.metadata for d in results),
+    }, indent=2))

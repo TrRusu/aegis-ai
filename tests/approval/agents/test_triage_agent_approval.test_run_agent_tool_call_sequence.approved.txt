@@ -1,0 +1,5 @@
+[
+  "search_knowledge_base",
+  "lookup_cve",
+  "calculate_breach_cost"
+]

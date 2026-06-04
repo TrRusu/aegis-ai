@@ -1,5 +1,10 @@
 import pytest
 from unittest.mock import MagicMock, patch
+from approvaltests import set_default_reporter
+from approvaltests.reporters.python_native_reporter import PythonNativeReporter
+
+# Use PythonNativeReporter in all environments — raises AssertionError with diff, no GUI
+set_default_reporter(PythonNativeReporter())
 
 
 @pytest.fixture(autouse=True)

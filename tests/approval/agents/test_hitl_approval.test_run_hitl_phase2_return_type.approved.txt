@@ -1,0 +1,4 @@
+{
+  "return_type": "str",
+  "is_non_empty": true
+}
