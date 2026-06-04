@@ -1,0 +1,4 @@
+{
+  "all_have_source": true,
+  "all_have_page": true
+}

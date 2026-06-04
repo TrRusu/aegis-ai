@@ -1,0 +1,5 @@
+{
+  "source_docs_count": 2,
+  "source_docs_type": "Document",
+  "stream_is_iterable": true
+}

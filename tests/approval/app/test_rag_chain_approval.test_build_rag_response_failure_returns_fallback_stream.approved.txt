@@ -1,0 +1,4 @@
+{
+  "source_docs": [],
+  "chunk_content": "Aegis is temporarily unavailable \u2014 the AI service did not respond in time. Please try again in a moment."
+}
