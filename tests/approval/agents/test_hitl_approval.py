@@ -55,10 +55,11 @@ def test_requires_approval_critical_severity_skips_approval():
 
 # ── run_hitl_phase1 ────────────────────────────────────────────────────────────
 
+@patch("agents.supervisor_hitl.ChatOpenAI")
 @patch("agents.supervisor_hitl.MultiServerMCPClient")
 @patch("agents.supervisor_hitl.make_tools", return_value=[])
 @patch("agents.supervisor_hitl.create_react_agent")
-def test_run_hitl_phase1_returns_three_tuple(mock_agent, mock_tools, mock_mcp):
+def test_run_hitl_phase1_returns_three_tuple(mock_agent, mock_tools, mock_mcp, mock_llm):
     """Approval: run_hitl_phase1 returns (str, str, list) tuple."""
     mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
     mock_agent.return_value.ainvoke = AsyncMock(
@@ -74,10 +75,11 @@ def test_run_hitl_phase1_returns_three_tuple(mock_agent, mock_tools, mock_mcp):
     assert isinstance(result[2], list)  # tool calls log
 
 
+@patch("agents.supervisor_hitl.ChatOpenAI")
 @patch("agents.supervisor_hitl.MultiServerMCPClient")
 @patch("agents.supervisor_hitl.make_tools", return_value=[])
 @patch("agents.supervisor_hitl.create_react_agent")
-def test_run_hitl_phase1_extracts_severity(mock_agent, mock_tools, mock_mcp):
+def test_run_hitl_phase1_extracts_severity(mock_agent, mock_tools, mock_mcp, mock_llm):
     """Approval: severity is correctly extracted from the phase 1 output."""
     mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
     mock_agent.return_value.ainvoke = AsyncMock(
@@ -89,10 +91,11 @@ def test_run_hitl_phase1_extracts_severity(mock_agent, mock_tools, mock_mcp):
     assert severity == "Critical"
 
 
+@patch("agents.supervisor_hitl.ChatOpenAI")
 @patch("agents.supervisor_hitl.MultiServerMCPClient")
 @patch("agents.supervisor_hitl.make_tools", return_value=[])
 @patch("agents.supervisor_hitl.create_react_agent")
-def test_run_hitl_phase1_returns_fallback_on_failure(mock_agent, mock_tools, mock_mcp):
+def test_run_hitl_phase1_returns_fallback_on_failure(mock_agent, mock_tools, mock_mcp, mock_llm):
     """Approval: run_hitl_phase1 returns fallback, Unknown severity, and empty list on failure."""
     mock_mcp.return_value.get_tools = AsyncMock(side_effect=Exception("MCP failed"))
 

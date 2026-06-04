@@ -31,10 +31,11 @@ def _make_supervisor_result(specialists=None):
     return {"messages": messages}
 
 
+@patch("agents.supervisor_workflow.ChatOpenAI")
 @patch("agents.supervisor_workflow.MultiServerMCPClient")
 @patch("agents.supervisor_workflow.make_tools", return_value=[])
 @patch("agents.supervisor_workflow.create_react_agent")
-def test_run_supervisor_returns_tuple(mock_agent, mock_tools, mock_mcp):
+def test_run_supervisor_returns_tuple(mock_agent, mock_tools, mock_mcp, mock_llm):
     """Approval: run_supervisor returns a (str, list) tuple."""
     mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
     mock_agent.return_value.ainvoke = AsyncMock(
@@ -49,10 +50,11 @@ def test_run_supervisor_returns_tuple(mock_agent, mock_tools, mock_mcp):
     assert isinstance(result[1], list)
 
 
+@patch("agents.supervisor_workflow.ChatOpenAI")
 @patch("agents.supervisor_workflow.MultiServerMCPClient")
 @patch("agents.supervisor_workflow.make_tools", return_value=[])
 @patch("agents.supervisor_workflow.create_react_agent")
-def test_run_supervisor_captures_specialist_calls(mock_agent, mock_tools, mock_mcp):
+def test_run_supervisor_captures_specialist_calls(mock_agent, mock_tools, mock_mcp, mock_llm):
     """Approval: specialist agents invoked by supervisor are captured in tool_calls_log."""
     mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
     mock_agent.return_value.ainvoke = AsyncMock(
@@ -69,10 +71,11 @@ def test_run_supervisor_captures_specialist_calls(mock_agent, mock_tools, mock_m
     assert tool_calls_log[2]["tool"] == "compliance_analyst"
 
 
+@patch("agents.supervisor_workflow.ChatOpenAI")
 @patch("agents.supervisor_workflow.MultiServerMCPClient")
 @patch("agents.supervisor_workflow.make_tools", return_value=[])
 @patch("agents.supervisor_workflow.create_react_agent")
-def test_run_supervisor_no_specialists_when_vague_incident(mock_agent, mock_tools, mock_mcp):
+def test_run_supervisor_no_specialists_when_vague_incident(mock_agent, mock_tools, mock_mcp, mock_llm):
     """Approval: supervisor invokes no specialists for a vague incident."""
     mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
     mock_agent.return_value.ainvoke = AsyncMock(
@@ -84,10 +87,11 @@ def test_run_supervisor_no_specialists_when_vague_incident(mock_agent, mock_tool
     assert tool_calls_log == []
 
 
+@patch("agents.supervisor_workflow.ChatOpenAI")
 @patch("agents.supervisor_workflow.MultiServerMCPClient")
 @patch("agents.supervisor_workflow.make_tools", return_value=[])
 @patch("agents.supervisor_workflow.create_react_agent")
-def test_run_supervisor_returns_fallback_on_failure(mock_agent, mock_tools, mock_mcp):
+def test_run_supervisor_returns_fallback_on_failure(mock_agent, mock_tools, mock_mcp, mock_llm):
     """Approval: run_supervisor returns fallback message and empty list on failure."""
     mock_mcp.return_value.get_tools = AsyncMock(side_effect=Exception("MCP failed"))
 
