@@ -33,3 +33,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Portfolio documentation (local only)
+docs/portfolio/
