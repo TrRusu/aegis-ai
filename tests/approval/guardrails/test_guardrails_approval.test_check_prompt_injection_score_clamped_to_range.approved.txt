@@ -1,0 +1,4 @@
+{
+  "is_blocked": true,
+  "score": 1.0
+}
