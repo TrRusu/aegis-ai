@@ -2,7 +2,7 @@
 Approval tests for the breach triage agent.
 Captures the current output structure before any refactoring.
 """
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from observability.fault_tolerance import FALLBACK_MESSAGE
 from agents.breach_triage_agent import run_agent

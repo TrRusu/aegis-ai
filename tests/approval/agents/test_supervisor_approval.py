@@ -2,7 +2,7 @@
 Approval tests for the supervisor workflow.
 Captures the current output structure before any refactoring.
 """
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from observability.fault_tolerance import FALLBACK_MESSAGE
 from agents.supervisor_workflow import run_supervisor
