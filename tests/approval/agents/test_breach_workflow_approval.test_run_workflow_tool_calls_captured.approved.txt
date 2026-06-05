@@ -1,0 +1,4 @@
+[
+  "search_knowledge_base",
+  "lookup_cve"
+]
