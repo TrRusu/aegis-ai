@@ -25,6 +25,10 @@ langchain-mcp-adapters>=0.1.0
 httpx>=0.27.0
 httpx2
 
+# A2A server
+fastapi>=0.100.0
+uvicorn>=0.20.0
+
 # UI
 streamlit==1.45.0
 
