@@ -1,0 +1,6 @@
+{
+  "status_code": 200,
+  "has_analysis_key": true,
+  "analysis_type": "str",
+  "analysis_non_empty": true
+}

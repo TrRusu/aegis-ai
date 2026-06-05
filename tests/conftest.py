@@ -1,20 +1,10 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from approvaltests import set_default_reporter
-from approvaltests.core.reporter import Reporter
-from approvaltests.reporters.python_native_reporter import calculate_diff_with_approve_instruction
+from approvaltests.reporters.python_native_reporter import PythonNativeReporter
 
-
-class ReceivedOnlyReporter(Reporter):
-    """Never auto-creates the approved file. Only generates received files on failure.
-    Rename received -> approved manually to approve a result."""
-
-    def report(self, received_path: str, approved_path: str) -> bool:
-        print(calculate_diff_with_approve_instruction(received_path, approved_path))
-        return True
-
-
-set_default_reporter(ReceivedOnlyReporter())
+# Use PythonNativeReporter in all environments — raises AssertionError with diff, no GUI
+set_default_reporter(PythonNativeReporter())
 
 
 @pytest.fixture(autouse=True)
