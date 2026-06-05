@@ -1,0 +1,7 @@
+{
+  "status_code": 200,
+  "has_name": true,
+  "has_version": true,
+  "has_skills": true,
+  "has_capabilities": true
+}
