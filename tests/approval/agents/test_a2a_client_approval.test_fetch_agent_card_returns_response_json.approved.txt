@@ -1,0 +1,4 @@
+{
+  "name": "Threat Intelligence Agent",
+  "version": "1.0.0"
+}
