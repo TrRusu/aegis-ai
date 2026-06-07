@@ -1,7 +1,7 @@
 """
 Approval tests for the CVE MCP server — lookup_cve().
 """
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from approvaltests import verify
 
