@@ -49,7 +49,8 @@ def test_ingest_returns_correct_message_format():
         Document(page_content="chunk two", metadata={}),
     ]
     store = DocumentStore(vectorstore=mock_chroma)
-    result = store.ingest("report.pdf", loader=mock_loader)
+    with patch("rag.ingestion.Chroma"), patch("rag.ingestion.OpenAIEmbeddings"):
+        result = store.ingest("report.pdf", loader=mock_loader)
     assert "report.pdf" in result
     assert "2 chunks" in result
 
@@ -61,6 +62,6 @@ def test_ingest_stores_chunks_in_vectorstore():
     mock_loader = MagicMock()
     mock_loader.load.return_value = [Document(page_content="chunk", metadata={})]
     store = DocumentStore(vectorstore=mock_chroma)
-    with patch("rag.ingestion.Chroma") as mock_chroma_cls:
+    with patch("rag.ingestion.Chroma") as mock_chroma_cls, patch("rag.ingestion.OpenAIEmbeddings"):
         store.ingest("report.pdf", loader=mock_loader)
         mock_chroma_cls.from_documents.assert_called_once()
