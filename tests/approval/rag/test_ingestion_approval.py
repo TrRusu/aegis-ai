@@ -7,50 +7,50 @@ from unittest.mock import MagicMock, patch
 from approvaltests import verify
 
 from langchain_core.documents import Document
-from rag.ingestion import _looks_like_chart_garbage, ingest_file, get_ingested_documents
+from rag.ingestion import ingest_file, get_ingested_documents
+from rag.vision import VisionAnalyzer
 
 
 def test_chart_garbage_detects_ocr_noise():
     """Approval: OCR noise with short average token length is flagged as garbage."""
-    verify(str(_looks_like_chart_garbage("A oO A BB A ) A w A £")))
+    verify(str(VisionAnalyzer.looks_like_chart_garbage("A oO A BB A ) A w A £")))
 
 def test_chart_garbage_passes_real_prose():
     """Approval: real prose with normal word lengths is not flagged as garbage."""
-    verify(str(_looks_like_chart_garbage(
+    verify(str(VisionAnalyzer.looks_like_chart_garbage(
         "Healthcare industry had the highest breach cost at USD 9.77 million in 2024."
     )))
 
 def test_chart_garbage_ignores_short_texts():
     """Approval: texts with fewer than 4 tokens are never flagged."""
-    verify(str(_looks_like_chart_garbage("A B")))
+    verify(str(VisionAnalyzer.looks_like_chart_garbage("A B")))
 
 @patch("rag.ingestion.Chroma")
 @patch("rag.ingestion.OpenAIEmbeddings")
 @patch("rag.ingestion.get_ingested_documents", return_value=[])
-@patch("rag.ingestion._load_pdf_basic")
-def test_ingest_file_basic_return_message(mock_load, mock_get, mock_emb, mock_chroma):
+@patch("rag.ingestion.BasicPdfLoader")
+def test_ingest_file_basic_return_message(mock_loader_cls, mock_get, mock_emb, mock_chroma):
     """Approval: ingest_file basic mode return message format."""
-    mock_load.return_value = [
+    mock_loader_cls.return_value.load.return_value = [
         Document(page_content="chunk one", metadata={"source": "test.pdf", "page": 1}),
         Document(page_content="chunk two", metadata={"source": "test.pdf", "page": 2}),
     ]
     mock_chroma.from_documents.return_value = MagicMock()
-
     verify(ingest_file("test.pdf", enhanced=False))
 
 @patch("rag.ingestion.Chroma")
 @patch("rag.ingestion.OpenAIEmbeddings")
+@patch("rag.ingestion.ChatOpenAI")
 @patch("rag.ingestion.get_ingested_documents", return_value=[])
-@patch("rag.ingestion._load_and_chunk_pdf")
-def test_ingest_file_enhanced_return_message(mock_load, mock_get, mock_emb, mock_chroma):
+@patch("rag.ingestion.EnhancedPdfLoader")
+def test_ingest_file_enhanced_return_message(mock_loader_cls, mock_get, mock_llm, mock_emb, mock_chroma):
     """Approval: ingest_file enhanced mode return message format."""
-    mock_load.return_value = [
+    mock_loader_cls.return_value.load.return_value = [
         Document(page_content="chart summary", metadata={"source": "test.pdf", "page": 1, "category": "ImageSummary"}),
         Document(page_content="table summary", metadata={"source": "test.pdf", "page": 2, "category": "TableSummary"}),
         Document(page_content="narrative text", metadata={"source": "test.pdf", "page": 3, "category": "NarrativeText"}),
     ]
     mock_chroma.from_documents.return_value = MagicMock()
-
     verify(ingest_file("test.pdf", enhanced=True))
 
 @patch("rag.ingestion.Chroma")

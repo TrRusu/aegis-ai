@@ -18,7 +18,6 @@ def _make_nvd_response(
     base_severity="CRITICAL",
     version="3.1",
 ):
-"""Helper to create a mock NVD API response with specified CVE details."""
     return {
         "vulnerabilities": [
             {
