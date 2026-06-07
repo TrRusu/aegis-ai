@@ -9,3 +9,7 @@ OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-s
 
 APP_NAME = os.getenv("APP_NAME", "Aegis")
 APP_ENV = os.getenv("APP_ENV", "development")
+
+CVE_SERVER_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "mcp_servers", "cve_server.py")
+)
