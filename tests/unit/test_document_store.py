@@ -1,7 +1,6 @@
 """
 Unit tests for DocumentStore class in rag/ingestion.py (TDD).
 """
-import os
 from unittest.mock import MagicMock, patch
 
 from langchain_core.documents import Document

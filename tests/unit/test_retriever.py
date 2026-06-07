@@ -3,7 +3,6 @@ Unit tests for VectorRetriever and HybridRetriever classes in rag/retriever.py (
 """
 from unittest.mock import MagicMock, patch
 
-from langchain_core.documents import Document
 
 
 def test_vector_retriever_build_returns_retriever():
