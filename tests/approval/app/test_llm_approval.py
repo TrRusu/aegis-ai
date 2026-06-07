@@ -1,6 +1,5 @@
 """
 Approval tests for app/llm.py.
-Captures the current behavior before any refactoring.
 """
 import json
 from unittest.mock import patch
@@ -8,9 +7,6 @@ from unittest.mock import patch
 from approvaltests import verify
 
 from app.llm import build_llm, build_messages
-
-
-# ── build_llm ──────────────────────────────────────────────────────────────────
 
 @patch("app.llm.ChatOpenAI")
 def test_build_llm_returns_chat_openai(mock_llm):
@@ -20,7 +16,6 @@ def test_build_llm_returns_chat_openai(mock_llm):
     verify(json.dumps({
         "return_type": type(result).__name__,
     }, indent=2))
-
 
 @patch("app.llm.ChatOpenAI")
 def test_build_llm_passes_correct_params(mock_llm):
@@ -34,9 +29,6 @@ def test_build_llm_passes_correct_params(mock_llm):
         "streaming": call_kwargs.get("streaming"),
     }, indent=2))
 
-
-# ── build_messages ─────────────────────────────────────────────────────────────
-
 def test_build_messages_empty_history():
     """Approval: build_messages with empty history returns only system message."""
     messages = build_messages([])
@@ -45,7 +37,6 @@ def test_build_messages_empty_history():
         "count": len(messages),
         "types": [type(m).__name__ for m in messages],
     }, indent=2))
-
 
 def test_build_messages_with_history():
     """Approval: build_messages converts history to correct message types."""
@@ -61,7 +52,6 @@ def test_build_messages_with_history():
         "count": len(messages),
         "types": [type(m).__name__ for m in messages],
     }, indent=2))
-
 
 def test_build_messages_system_prompt_is_first():
     """Approval: first message is always a SystemMessage."""

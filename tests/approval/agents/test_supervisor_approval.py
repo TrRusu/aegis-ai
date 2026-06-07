@@ -1,6 +1,5 @@
 """
 Approval tests for the supervisor workflow.
-Captures the current output structure before any refactoring.
 """
 import json
 from unittest.mock import AsyncMock, patch
@@ -12,7 +11,7 @@ from agents.supervisor_workflow import run_supervisor
 
 
 def _make_supervisor_result(specialists=None):
-
+    """Helper to create a mock response for the supervisor agent with optional specialists."""
     messages = [HumanMessage(content="test incident")]
 
     if specialists:
@@ -31,7 +30,6 @@ def _make_supervisor_result(specialists=None):
     messages.append(AIMessage(content="Supervisor final report."))
     return {"messages": messages}
 
-
 @patch("agents.supervisor_workflow.ChatOpenAI")
 @patch("agents.supervisor_workflow.MultiServerMCPClient")
 @patch("agents.supervisor_workflow.make_tools", return_value=[])
@@ -48,7 +46,6 @@ def test_run_supervisor_return_structure(mock_agent, mock_tools, mock_mcp, mock_
         "length": len(result),
         "element_types": [type(x).__name__ for x in result],
     }, indent=2))
-
 
 @patch("agents.supervisor_workflow.ChatOpenAI")
 @patch("agents.supervisor_workflow.MultiServerMCPClient")
@@ -67,7 +64,6 @@ def test_run_supervisor_specialist_sequence(mock_agent, mock_tools, mock_mcp, mo
 
     verify(json.dumps([c["tool"] for c in tool_calls_log], indent=2))
 
-
 @patch("agents.supervisor_workflow.ChatOpenAI")
 @patch("agents.supervisor_workflow.MultiServerMCPClient")
 @patch("agents.supervisor_workflow.make_tools", return_value=[])
@@ -80,7 +76,6 @@ def test_run_supervisor_no_specialists_behavior(mock_agent, mock_tools, mock_mcp
     _, tool_calls_log = run_supervisor("We may have had some kind of security incident.")
 
     verify(json.dumps(tool_calls_log, indent=2))
-
 
 @patch("agents.supervisor_workflow.ChatOpenAI")
 @patch("agents.supervisor_workflow.MultiServerMCPClient")

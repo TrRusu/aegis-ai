@@ -1,6 +1,5 @@
 """
 Approval tests for the retriever output structure.
-Captures the current behavior before any refactoring.
 """
 import json
 from unittest.mock import MagicMock, patch
@@ -14,6 +13,7 @@ from rag.retriever import build_retriever
 
 
 def _make_mock_vectorstore(docs=None):
+    """Helper to create a mock vector store with retriever output."""
     if docs is None:
         docs = [
             Document(page_content="Healthcare breach cost was $9.77M", metadata={"source": "test.pdf", "page": 10}),
@@ -26,7 +26,6 @@ def _make_mock_vectorstore(docs=None):
         "metadatas": [d.metadata for d in docs],
     }
     return mock_vs, docs
-
 
 @patch("rag.retriever.Chroma")
 @patch("rag.retriever.OpenAIEmbeddings")
@@ -43,7 +42,6 @@ def test_vector_retriever_document_structure(mock_embeddings, mock_chroma):
         "fields": sorted(results[0].metadata.keys()) if results else [],
         "has_page_content": all(len(d.page_content) > 0 for d in results),
     }, indent=2))
-
 
 @patch("rag.retriever.Chroma")
 @patch("rag.retriever.OpenAIEmbeddings")
@@ -65,7 +63,6 @@ def test_hybrid_retriever_type(mock_embeddings, mock_chroma):
     retriever = build_retriever(k=2, hybrid=True)
 
     verify(type(retriever).__name__)
-
 
 @patch("rag.retriever.Chroma")
 @patch("rag.retriever.OpenAIEmbeddings")

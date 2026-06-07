@@ -1,6 +1,5 @@
 """
 Approval tests for app/rag_chain.py.
-Captures the current behavior before any refactoring.
 """
 import json
 from unittest.mock import MagicMock, patch
@@ -12,17 +11,17 @@ from app.rag_chain import build_rag_response
 
 
 def _make_mock_docs():
+    """Helper to create mock documents returned by the retriever."""
     return [
         Document(page_content="Healthcare breach cost was $9.77M", metadata={"source": "test.pdf", "page": 10}),
         Document(page_content="Average cost per record is $169", metadata={"source": "test.pdf", "page": 5}),
     ]
 
-
 def _make_mock_chunk(text):
+    """Helper to create a mock chunk returned by the LLM stream."""
     chunk = MagicMock()
     chunk.content = text
     return chunk
-
 
 @patch("app.rag_chain.ChatOpenAI")
 @patch("app.rag_chain.build_retriever")
@@ -45,7 +44,6 @@ def test_build_rag_response_returns_stream_and_docs(mock_retriever, mock_llm):
         "stream_is_iterable": hasattr(stream, "__iter__"),
     }, indent=2))
 
-
 @patch("app.rag_chain.ChatOpenAI")
 @patch("app.rag_chain.build_retriever")
 def test_build_rag_response_returns_correct_docs(mock_retriever, mock_llm):
@@ -65,7 +63,6 @@ def test_build_rag_response_returns_correct_docs(mock_retriever, mock_llm):
         "all_have_source": all("source" in d.metadata for d in source_docs),
         "all_have_page": all("page" in d.metadata for d in source_docs),
     }, indent=2))
-
 
 @patch("app.rag_chain.build_retriever")
 def test_build_rag_response_failure_returns_fallback_stream(mock_retriever):

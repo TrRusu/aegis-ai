@@ -9,14 +9,12 @@ from approvaltests import verify
 from agents.a2a_client import call_threat_intel_agent, is_server_available, fetch_agent_card
 
 
-# ── call_threat_intel_agent ────────────────────────────────────────────────────
-
 def _mock_post_response(analysis="Threat intel analysis result."):
+    """Helper to create a mock response for httpx.post with a given analysis string."""
     mock = MagicMock()
     mock.json.return_value = {"analysis": analysis}
     mock.raise_for_status = MagicMock()
     return mock
-
 
 @patch("agents.a2a_client.httpx.post")
 def test_call_threat_intel_agent_return_type(mock_post):
@@ -30,7 +28,6 @@ def test_call_threat_intel_agent_return_type(mock_post):
         "is_non_empty": len(result) > 0,
     }, indent=2))
 
-
 @patch("agents.a2a_client.httpx.post")
 def test_call_threat_intel_agent_returns_analysis_field(mock_post):
     """Approval: call_threat_intel_agent returns the analysis field from the JSON response."""
@@ -39,7 +36,6 @@ def test_call_threat_intel_agent_returns_analysis_field(mock_post):
     result = call_threat_intel_agent("Phishing attack detected.")
 
     verify(result)
-
 
 @patch("agents.a2a_client.httpx.post")
 def test_call_threat_intel_agent_missing_analysis_key(mock_post):
@@ -53,9 +49,6 @@ def test_call_threat_intel_agent_missing_analysis_key(mock_post):
 
     verify(result)
 
-
-# ── is_server_available ────────────────────────────────────────────────────────
-
 @patch("agents.a2a_client.httpx.get")
 def test_is_server_available_returns_true_when_reachable(mock_get):
     """Approval: is_server_available returns True when server responds."""
@@ -64,7 +57,6 @@ def test_is_server_available_returns_true_when_reachable(mock_get):
     result = is_server_available()
 
     verify(json.dumps({"available": result}, indent=2))
-
 
 @patch("agents.a2a_client.httpx.get")
 def test_is_server_available_returns_false_when_unreachable(mock_get):
@@ -75,9 +67,6 @@ def test_is_server_available_returns_false_when_unreachable(mock_get):
 
     verify(json.dumps({"available": result}, indent=2))
 
-
-# ── fetch_agent_card ───────────────────────────────────────────────────────────
-
 @patch("agents.a2a_client.httpx.get")
 def test_fetch_agent_card_return_type(mock_get):
     """Approval: fetch_agent_card returns a dict."""
@@ -87,7 +76,6 @@ def test_fetch_agent_card_return_type(mock_get):
     result = fetch_agent_card()
 
     verify(json.dumps({"return_type": type(result).__name__}, indent=2))
-
 
 @patch("agents.a2a_client.httpx.get")
 def test_fetch_agent_card_returns_response_json(mock_get):

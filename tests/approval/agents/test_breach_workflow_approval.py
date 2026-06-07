@@ -27,7 +27,6 @@ def test_run_workflow_return_structure(mock_research, mock_tools, mock_mcp, mock
         "element_types": [type(x).__name__ for x in result],
     }, indent=2))
 
-
 @patch("agents.breach_workflow.ChatOpenAI")
 @patch("agents.breach_workflow.MultiServerMCPClient")
 @patch("agents.breach_workflow.make_tools", return_value=[])
@@ -48,7 +47,6 @@ def test_run_workflow_tool_calls_captured(mock_research, mock_tools, mock_mcp, m
 
     verify(json.dumps([c["tool"] for c in tool_calls_log], indent=2))
 
-
 @patch("agents.breach_workflow.ChatOpenAI")
 @patch("agents.breach_workflow.MultiServerMCPClient")
 @patch("agents.breach_workflow.make_tools", return_value=[])
@@ -62,7 +60,6 @@ def test_run_workflow_empty_tool_calls_when_no_tools_used(mock_research, mock_to
     _, tool_calls_log = run_workflow("Vague incident description.")
 
     verify(json.dumps(tool_calls_log, indent=2))
-
 
 @patch("agents.breach_workflow.ChatOpenAI")
 @patch("agents.breach_workflow.MultiServerMCPClient")
