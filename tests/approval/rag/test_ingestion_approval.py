@@ -27,10 +27,10 @@ def test_chart_garbage_ignores_short_texts():
 
 @patch("rag.ingestion.Chroma")
 @patch("rag.ingestion.OpenAIEmbeddings")
-@patch("rag.ingestion.get_ingested_documents", return_value=[])
 @patch("rag.ingestion.BasicPdfLoader")
-def test_ingest_file_basic_return_message(mock_loader_cls, mock_get, mock_emb, mock_chroma):
+def test_ingest_file_basic_return_message(mock_loader_cls, mock_emb, mock_chroma):
     """Approval: ingest_file basic mode return message format."""
+    mock_chroma.return_value._collection.get.return_value = {"metadatas": []}
     mock_loader_cls.return_value.load.return_value = [
         Document(page_content="chunk one", metadata={"source": "test.pdf", "page": 1}),
         Document(page_content="chunk two", metadata={"source": "test.pdf", "page": 2}),
@@ -41,10 +41,10 @@ def test_ingest_file_basic_return_message(mock_loader_cls, mock_get, mock_emb, m
 @patch("rag.ingestion.Chroma")
 @patch("rag.ingestion.OpenAIEmbeddings")
 @patch("rag.ingestion.ChatOpenAI")
-@patch("rag.ingestion.get_ingested_documents", return_value=[])
 @patch("rag.ingestion.EnhancedPdfLoader")
-def test_ingest_file_enhanced_return_message(mock_loader_cls, mock_get, mock_llm, mock_emb, mock_chroma):
+def test_ingest_file_enhanced_return_message(mock_loader_cls, mock_llm, mock_emb, mock_chroma):
     """Approval: ingest_file enhanced mode return message format."""
+    mock_chroma.return_value._collection.get.return_value = {"metadatas": []}
     mock_loader_cls.return_value.load.return_value = [
         Document(page_content="chart summary", metadata={"source": "test.pdf", "page": 1, "category": "ImageSummary"}),
         Document(page_content="table summary", metadata={"source": "test.pdf", "page": 2, "category": "TableSummary"}),
@@ -55,25 +55,24 @@ def test_ingest_file_enhanced_return_message(mock_loader_cls, mock_get, mock_llm
 
 @patch("rag.ingestion.Chroma")
 @patch("rag.ingestion.OpenAIEmbeddings")
-@patch("rag.ingestion.get_ingested_documents", return_value=["test.pdf"])
-def test_ingest_file_already_ingested_message(mock_get, mock_emb, mock_chroma):
+def test_ingest_file_already_ingested_message(mock_emb, mock_chroma):
     """Approval: ingest_file skips a file already in ChromaDB."""
+    mock_chroma.return_value._collection.get.return_value = {
+        "metadatas": [{"source": "/kb/test.pdf"}]
+    }
     verify(ingest_file("test.pdf", enhanced=False))
 
 @patch("rag.ingestion.Chroma")
 @patch("rag.ingestion.OpenAIEmbeddings")
 def test_get_ingested_documents_returns_sorted(mock_emb, mock_chroma):
     """Approval: get_ingested_documents returns sorted unique filenames."""
-    mock_vs = MagicMock()
-    mock_vs._collection.get.return_value = {
+    mock_chroma.return_value._collection.get.return_value = {
         "metadatas": [
             {"source": "/data/knowledge_base/report.pdf"},
             {"source": "/data/knowledge_base/report.pdf"},
             {"source": "/data/knowledge_base/annual.pdf"},
         ]
     }
-    mock_chroma.return_value = mock_vs
-
     verify(json.dumps(get_ingested_documents(), indent=2))
 
 @patch("rag.ingestion.Chroma")
@@ -81,5 +80,4 @@ def test_get_ingested_documents_returns_sorted(mock_emb, mock_chroma):
 def test_get_ingested_documents_on_error(mock_emb, mock_chroma):
     """Approval: get_ingested_documents returns empty list if ChromaDB fails."""
     mock_chroma.side_effect = Exception("ChromaDB unavailable")
-
     verify(json.dumps(get_ingested_documents(), indent=2))
