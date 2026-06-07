@@ -20,14 +20,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Lint — ruff
+        run: |
+          pip install ruff
+          ruff check .
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff
-
-      - name: Lint — ruff
-        run: ruff check .
 
       - name: Test — pytest with coverage
         run: pytest tests/ -v --cov=. --cov-report=term-missing --cov-fail-under=0 || ([ $? -eq 5 ] && exit 0 || exit 1)
