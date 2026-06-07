@@ -38,7 +38,6 @@ def test_vector_retriever_no_filter_when_no_selected_docs():
 
 def test_hybrid_retriever_build_returns_ensemble_retriever():
     from rag.retriever import HybridRetriever
-    from langchain_classic.retrievers import EnsembleRetriever
     mock_vectorstore = MagicMock()
     mock_vectorstore.as_retriever.return_value = MagicMock()
     mock_vectorstore._collection.get.return_value = {
@@ -46,10 +45,13 @@ def test_hybrid_retriever_build_returns_ensemble_retriever():
         "metadatas": [{"source": "/kb/report.pdf"}],
     }
     retriever = HybridRetriever(vectorstore=mock_vectorstore)
-    with patch("rag.retriever.BM25Retriever") as mock_bm25:
+    mock_ensemble = MagicMock()
+    with patch("rag.retriever.BM25Retriever") as mock_bm25, \
+         patch("rag.retriever.EnsembleRetriever", return_value=mock_ensemble) as mock_ens_cls:
         mock_bm25.from_documents.return_value = MagicMock()
         result = retriever.build(k=4)
-    assert isinstance(result, EnsembleRetriever)
+    mock_ens_cls.assert_called_once()
+    assert result is mock_ensemble
 
 
 def test_hybrid_retriever_filters_docs_by_selected():
@@ -66,7 +68,8 @@ def test_hybrid_retriever_filters_docs_by_selected():
         ],
     }
     retriever = HybridRetriever(vectorstore=mock_vectorstore)
-    with patch("rag.retriever.BM25Retriever") as mock_bm25:
+    with patch("rag.retriever.BM25Retriever") as mock_bm25, \
+         patch("rag.retriever.EnsembleRetriever", return_value=MagicMock()):
         mock_bm25.from_documents.return_value = MagicMock()
         retriever.build(k=4, selected_docs=["report.pdf"])
         docs_passed = mock_bm25.from_documents.call_args[0][0]
