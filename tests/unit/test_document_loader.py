@@ -43,7 +43,7 @@ def test_enhanced_loader_returns_list_of_documents():
 def test_enhanced_loader_splits_narrative_chunks():
     from rag.document_loader import EnhancedPdfLoader
     mock_llm = MagicMock()
-    narrative = Document(page_content="Long text.", metadata={"category": "NarrativeText", "source": "f.pdf", "page": 1})
+    narrative = Document(page_content="This is a long narrative text about data breaches.", metadata={"category": "NarrativeText", "source": "f.pdf", "page": 1})
     split_result = [Document(page_content="chunk1", metadata={}), Document(page_content="chunk2", metadata={})]
     with patch("rag.document_loader.UnstructuredPDFLoader") as mock_loader_cls, \
          patch("rag.document_loader.RecursiveCharacterTextSplitter") as mock_splitter_cls:
