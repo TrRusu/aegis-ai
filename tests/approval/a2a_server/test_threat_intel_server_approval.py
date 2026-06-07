@@ -13,7 +13,7 @@ client = TestClient(app)
 
 
 def test_agent_card_endpoint_returns_required_keys():
-    """Approval: GET /.well-known/agent-card.json returns all required agent card fields."""
+
     response = client.get("/.well-known/agent-card.json")
 
     card = response.json()

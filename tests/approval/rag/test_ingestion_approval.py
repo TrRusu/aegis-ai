@@ -1,6 +1,5 @@
 """
 Approval tests for the ingestion pipeline.
-Captures the current behavior before any refactoring.
 """
 import json
 from unittest.mock import MagicMock, patch
@@ -11,12 +10,9 @@ from langchain_core.documents import Document
 from rag.ingestion import _looks_like_chart_garbage, ingest_file, get_ingested_documents
 
 
-# ── _looks_like_chart_garbage ──────────────────────────────────────────────────
-
 def test_chart_garbage_detects_ocr_noise():
     """Approval: OCR noise with short average token length is flagged as garbage."""
     verify(str(_looks_like_chart_garbage("A oO A BB A ) A w A £")))
-
 
 def test_chart_garbage_passes_real_prose():
     """Approval: real prose with normal word lengths is not flagged as garbage."""
@@ -24,13 +20,9 @@ def test_chart_garbage_passes_real_prose():
         "Healthcare industry had the highest breach cost at USD 9.77 million in 2024."
     )))
 
-
 def test_chart_garbage_ignores_short_texts():
     """Approval: texts with fewer than 4 tokens are never flagged."""
     verify(str(_looks_like_chart_garbage("A B")))
-
-
-# ── ingest_file ────────────────────────────────────────────────────────────────
 
 @patch("rag.ingestion.Chroma")
 @patch("rag.ingestion.OpenAIEmbeddings")
@@ -45,7 +37,6 @@ def test_ingest_file_basic_return_message(mock_load, mock_get, mock_emb, mock_ch
     mock_chroma.from_documents.return_value = MagicMock()
 
     verify(ingest_file("test.pdf", enhanced=False))
-
 
 @patch("rag.ingestion.Chroma")
 @patch("rag.ingestion.OpenAIEmbeddings")
@@ -62,16 +53,12 @@ def test_ingest_file_enhanced_return_message(mock_load, mock_get, mock_emb, mock
 
     verify(ingest_file("test.pdf", enhanced=True))
 
-
 @patch("rag.ingestion.Chroma")
 @patch("rag.ingestion.OpenAIEmbeddings")
 @patch("rag.ingestion.get_ingested_documents", return_value=["test.pdf"])
 def test_ingest_file_already_ingested_message(mock_get, mock_emb, mock_chroma):
     """Approval: ingest_file skips a file already in ChromaDB."""
     verify(ingest_file("test.pdf", enhanced=False))
-
-
-# ── get_ingested_documents ─────────────────────────────────────────────────────
 
 @patch("rag.ingestion.Chroma")
 @patch("rag.ingestion.OpenAIEmbeddings")
@@ -88,7 +75,6 @@ def test_get_ingested_documents_returns_sorted(mock_emb, mock_chroma):
     mock_chroma.return_value = mock_vs
 
     verify(json.dumps(get_ingested_documents(), indent=2))
-
 
 @patch("rag.ingestion.Chroma")
 @patch("rag.ingestion.OpenAIEmbeddings")

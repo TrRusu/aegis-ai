@@ -1,5 +1,5 @@
 """
-Approval tests for the multimodal agent — enrich_with_image().
+Approval tests for the multimodal agent
 """
 import json
 from unittest.mock import MagicMock, patch
@@ -17,7 +17,6 @@ def test_enrich_with_image_no_image_returns_incident_unchanged():
 
     verify(result)
 
-
 def test_enrich_with_image_empty_bytes_returns_incident_unchanged():
     """Approval: enrich_with_image returns the original incident when image_bytes is empty."""
     incident = "Suspicious login from unknown IP."
@@ -25,7 +24,6 @@ def test_enrich_with_image_empty_bytes_returns_incident_unchanged():
     result = enrich_with_image(incident, image_bytes=b"")
 
     verify(result)
-
 
 @patch("agents.multimodal_agent.ChatOpenAI")
 def test_enrich_with_image_with_image_return_type(mock_llm):
@@ -45,7 +43,6 @@ def test_enrich_with_image_with_image_return_type(mock_llm):
         "is_non_empty": len(result) > 0,
     }, indent=2))
 
-
 @patch("agents.multimodal_agent.ChatOpenAI")
 def test_enrich_with_image_returns_llm_content(mock_llm):
     """Approval: enrich_with_image returns the enriched description from the LLM."""
@@ -58,7 +55,6 @@ def test_enrich_with_image_returns_llm_content(mock_llm):
     )
 
     verify(result)
-
 
 @patch("agents.multimodal_agent.ChatOpenAI")
 def test_enrich_with_image_no_api_call_when_no_image(mock_llm):

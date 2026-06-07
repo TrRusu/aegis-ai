@@ -1,5 +1,5 @@
 """
-Approval tests for the CVE MCP server — lookup_cve().
+Approval tests for the CVE MCP server
 """
 from unittest.mock import patch
 
@@ -18,6 +18,7 @@ def _make_nvd_response(
     base_severity="CRITICAL",
     version="3.1",
 ):
+"""Helper to create a mock NVD API response with specified CVE details."""
     return {
         "vulnerabilities": [
             {
@@ -39,9 +40,6 @@ def _make_nvd_response(
         ]
     }
 
-
-# ── Happy path ─────────────────────────────────────────────────────────────────
-
 @patch("mcp_servers.cve_server.httpx.get")
 def test_lookup_cve_returns_formatted_result(mock_get):
     """Approval: lookup_cve returns a formatted string with all CVE fields."""
@@ -51,7 +49,6 @@ def test_lookup_cve_returns_formatted_result(mock_get):
     result = lookup_cve("CVE-2021-44228")
 
     verify(result)
-
 
 @patch("mcp_servers.cve_server.httpx.get")
 def test_lookup_cve_falls_back_to_cvss_v30(mock_get):
@@ -68,7 +65,6 @@ def test_lookup_cve_falls_back_to_cvss_v30(mock_get):
 
     verify(result)
 
-
 @patch("mcp_servers.cve_server.httpx.get")
 def test_lookup_cve_falls_back_to_cvss_v2(mock_get):
     """Approval: lookup_cve uses CVSS v2 when neither v3.1 nor v3.0 are present."""
@@ -84,9 +80,6 @@ def test_lookup_cve_falls_back_to_cvss_v2(mock_get):
 
     verify(result)
 
-
-# ── CVE ID normalisation ───────────────────────────────────────────────────────
-
 @patch("mcp_servers.cve_server.httpx.get")
 def test_lookup_cve_adds_prefix_when_missing(mock_get):
     """Approval: lookup_cve prepends 'CVE-' when the input omits it."""
@@ -98,9 +91,6 @@ def test_lookup_cve_adds_prefix_when_missing(mock_get):
     called_with = mock_get.call_args[1]["params"]["cveId"]
     verify(called_with)
 
-
-# ── Error paths ────────────────────────────────────────────────────────────────
-
 @patch("mcp_servers.cve_server.httpx.get")
 def test_lookup_cve_not_found_in_nvd(mock_get):
     """Approval: lookup_cve returns a not-found message when NVD has no record."""
@@ -111,7 +101,6 @@ def test_lookup_cve_not_found_in_nvd(mock_get):
 
     verify(result)
 
-
 @patch("mcp_servers.cve_server.httpx.get")
 def test_lookup_cve_non_200_status(mock_get):
     """Approval: lookup_cve returns an error message on non-200 HTTP status."""
@@ -120,7 +109,6 @@ def test_lookup_cve_non_200_status(mock_get):
     result = lookup_cve("CVE-2021-44228")
 
     verify(result)
-
 
 @patch("mcp_servers.cve_server.httpx.get")
 def test_lookup_cve_timeout(mock_get):

@@ -1,6 +1,5 @@
 """
 Approval tests for the HITL supervisor workflow.
-Captures the current output structure before any refactoring.
 """
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -12,6 +11,7 @@ from agents.supervisor_hitl import run_hitl_phase1, run_hitl_phase2, requires_ap
 
 
 def _make_phase1_result(severity_label="Medium"):
+    """Helper to create a mock response for the phase 1 agent with a given severity label."""
     content = f"""**Incident Summary**: Ransomware attack detected.
 
 **Severity Assessment**: Based on the incident details.
@@ -24,35 +24,25 @@ Severity: {severity_label}
         AIMessage(content=content),
     ]}
 
-
-# ── requires_approval ──────────────────────────────────────────────────────────
-
 def test_requires_approval_low():
     """Approval: Low severity requires human approval."""
     verify(str(requires_approval("Low")))
-
 
 def test_requires_approval_medium():
     """Approval: Medium severity requires human approval."""
     verify(str(requires_approval("Medium")))
 
-
 def test_requires_approval_unknown():
     """Approval: Unknown severity requires human approval."""
     verify(str(requires_approval("Unknown")))
-
 
 def test_requires_approval_high():
     """Approval: High severity bypasses the approval gate."""
     verify(str(requires_approval("High")))
 
-
 def test_requires_approval_critical():
     """Approval: Critical severity bypasses the approval gate."""
     verify(str(requires_approval("Critical")))
-
-
-# ── run_hitl_phase1 ────────────────────────────────────────────────────────────
 
 @patch("agents.supervisor_hitl.ChatOpenAI")
 @patch("agents.supervisor_hitl.MultiServerMCPClient")
@@ -71,7 +61,6 @@ def test_run_hitl_phase1_return_structure(mock_agent, mock_tools, mock_mcp, mock
         "element_types": [type(x).__name__ for x in result],
     }, indent=2))
 
-
 @patch("agents.supervisor_hitl.ChatOpenAI")
 @patch("agents.supervisor_hitl.MultiServerMCPClient")
 @patch("agents.supervisor_hitl.make_tools", return_value=[])
@@ -84,7 +73,6 @@ def test_run_hitl_phase1_severity_extraction(mock_agent, mock_tools, mock_mcp, m
     _, severity, _ = run_hitl_phase1("Ransomware attack, 500k records exfiltrated.")
 
     verify(severity)
-
 
 @patch("agents.supervisor_hitl.ChatOpenAI")
 @patch("agents.supervisor_hitl.MultiServerMCPClient")
@@ -102,9 +90,6 @@ def test_run_hitl_phase1_failure_behavior(mock_agent, mock_tools, mock_mcp, mock
         "tool_calls": tool_calls,
     }, indent=2))
 
-
-# ── run_hitl_phase2 ────────────────────────────────────────────────────────────
-
 @patch("agents.supervisor_hitl.ChatOpenAI")
 def test_run_hitl_phase2_return_type(mock_llm):
     """Approval: run_hitl_phase2 returns a non-empty string."""
@@ -121,7 +106,6 @@ def test_run_hitl_phase2_return_type(mock_llm):
         "return_type": type(result).__name__,
         "is_non_empty": len(result) > 0,
     }, indent=2))
-
 
 @patch("agents.supervisor_hitl.ChatOpenAI")
 def test_run_hitl_phase2_failure_behavior(mock_llm):

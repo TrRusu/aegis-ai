@@ -29,7 +29,6 @@ def test_run_composed_workflow_return_structure(mock_standard, mock_critical, mo
         "element_types": [type(x).__name__ for x in result],
     }, indent=2))
 
-
 @patch("agents.composed_workflow.ChatOpenAI")
 @patch("agents.composed_workflow.MultiServerMCPClient")
 @patch("agents.composed_workflow.make_tools", return_value=[])
@@ -48,7 +47,6 @@ def test_run_composed_workflow_routes_to_critical_on_high_severity(mock_standard
         "standard_called": mock_standard.called,
     }, indent=2))
 
-
 @patch("agents.composed_workflow.ChatOpenAI")
 @patch("agents.composed_workflow.MultiServerMCPClient")
 @patch("agents.composed_workflow.make_tools", return_value=[])
@@ -66,7 +64,6 @@ def test_run_composed_workflow_routes_to_standard_on_low_severity(mock_standard,
         "critical_called": mock_critical.called,
         "standard_called": mock_standard.called,
     }, indent=2))
-
 
 @patch("agents.composed_workflow.ChatOpenAI")
 @patch("agents.composed_workflow.MultiServerMCPClient")
@@ -87,7 +84,6 @@ def test_run_composed_workflow_tool_calls_captured(mock_standard, mock_critical,
     _, tool_calls_log = run_composed_workflow("Ransomware attack with known CVE.")
 
     verify(json.dumps([c["tool"] for c in tool_calls_log], indent=2))
-
 
 @patch("agents.composed_workflow.ChatOpenAI")
 @patch("agents.composed_workflow.MultiServerMCPClient")

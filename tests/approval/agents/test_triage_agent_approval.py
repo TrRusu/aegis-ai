@@ -1,6 +1,5 @@
 """
 Approval tests for the breach triage agent.
-Captures the current output structure before any refactoring.
 """
 import json
 from unittest.mock import AsyncMock, patch
@@ -12,7 +11,7 @@ from agents.breach_triage_agent import run_agent
 
 
 def _make_agent_result(tool_names=None):
-
+    """Helper to create a mock response for the breach triage agent with optional tool calls."""
     messages = [HumanMessage(content="test incident")]
 
     if tool_names:
@@ -31,7 +30,6 @@ def _make_agent_result(tool_names=None):
     messages.append(AIMessage(content="Final triage report."))
     return {"messages": messages}
 
-
 @patch("agents.breach_triage_agent.ChatOpenAI")
 @patch("agents.breach_triage_agent.MultiServerMCPClient")
 @patch("agents.breach_triage_agent.make_tools", return_value=[])
@@ -49,7 +47,6 @@ def test_run_agent_return_structure(mock_agent, mock_tools, mock_mcp, mock_llm):
         "element_types": [type(x).__name__ for x in result],
     }, indent=2))
 
-
 @patch("agents.breach_triage_agent.ChatOpenAI")
 @patch("agents.breach_triage_agent.MultiServerMCPClient")
 @patch("agents.breach_triage_agent.make_tools", return_value=[])
@@ -64,7 +61,6 @@ def test_run_agent_tool_call_entry_keys(mock_agent, mock_tools, mock_mcp, mock_l
     _, tool_calls_log = run_agent("A ransomware attack on healthcare systems.")
 
     verify(json.dumps([sorted(entry.keys()) for entry in tool_calls_log], indent=2))
-
 
 @patch("agents.breach_triage_agent.ChatOpenAI")
 @patch("agents.breach_triage_agent.MultiServerMCPClient")
@@ -83,7 +79,6 @@ def test_run_agent_tool_call_sequence(mock_agent, mock_tools, mock_mcp, mock_llm
 
     verify(json.dumps([c["tool"] for c in tool_calls_log], indent=2))
 
-
 @patch("agents.breach_triage_agent.ChatOpenAI")
 @patch("agents.breach_triage_agent.MultiServerMCPClient")
 @patch("agents.breach_triage_agent.make_tools", return_value=[])
@@ -96,7 +91,6 @@ def test_run_agent_no_tools_behavior(mock_agent, mock_tools, mock_mcp, mock_llm)
     _, tool_calls_log = run_agent("What is a data breach?")
 
     verify(json.dumps(tool_calls_log, indent=2))
-
 
 @patch("agents.breach_triage_agent.ChatOpenAI")
 @patch("agents.breach_triage_agent.MultiServerMCPClient")
