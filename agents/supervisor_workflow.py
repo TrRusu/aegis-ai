@@ -10,11 +10,10 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from tools.tools import make_tools
-from app.config import OPENAI_API_KEY, OPENAI_MODEL
+from app.config import OPENAI_API_KEY, OPENAI_MODEL, CVE_SERVER_PATH
 from observability.logging_setup import log_llm_call, logger
 from observability.fault_tolerance import FALLBACK_MESSAGE
 
-_CVE_SERVER = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "mcp_servers", "cve_server.py"))
 
 
 def _run_in_thread(coro, timeout: int = 45) -> str:
@@ -166,7 +165,7 @@ async def _run_supervisor_async(
     mcp_client = MultiServerMCPClient({
         "cve": {
             "command": "python",
-            "args": [_CVE_SERVER],
+            "args": [CVE_SERVER_PATH],
             "transport": "stdio",
         }
     })

@@ -4,7 +4,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from tools.tools import make_tools
-from app.config import OPENAI_API_KEY, OPENAI_MODEL
+from app.config import OPENAI_API_KEY, OPENAI_MODEL, CVE_SERVER_PATH
 from observability.logging_setup import log_llm_call, logger
 from observability.fault_tolerance import with_retry, invoke_with_timeout, FALLBACK_MESSAGE
 
@@ -24,7 +24,6 @@ Guidelines:
 - Never provide instructions that could be used to carry out or facilitate a breach.
 """
 
-_CVE_SERVER = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "mcp_servers", "cve_server.py"))
 
 MAX_ROUNDS = 5
 
@@ -60,7 +59,7 @@ async def _run_async(
     mcp_client = MultiServerMCPClient({
         "cve": {
             "command": "python",
-            "args": [_CVE_SERVER],
+            "args": [CVE_SERVER_PATH],
             "transport": "stdio",
         }
     })

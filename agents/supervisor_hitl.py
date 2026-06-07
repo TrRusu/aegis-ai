@@ -10,11 +10,10 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from tools.tools import make_tools
-from app.config import OPENAI_API_KEY, OPENAI_MODEL
+from app.config import OPENAI_API_KEY, OPENAI_MODEL, CVE_SERVER_PATH
 from observability.logging_setup import log_llm_call, logger
 from observability.fault_tolerance import FALLBACK_MESSAGE
 
-_CVE_SERVER = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "mcp_servers", "cve_server.py"))
 
 # Severities that require human approval before the final report is produced.
 APPROVAL_SEVERITIES = {"critical", "high"}
@@ -154,7 +153,7 @@ You have a preliminary briefing and a human decision. Compile the final report:
 async def _phase1_async(incident: str, k: int, temperature: float, max_tokens: int):
     local_tools = make_tools(k=k)
     mcp_client = MultiServerMCPClient({
-        "cve": {"command": "python", "args": [_CVE_SERVER], "transport": "stdio"}
+        "cve": {"command": "python", "args": [CVE_SERVER_PATH], "transport": "stdio"}
     })
     mcp_tools = await mcp_client.get_tools()
     specialist_tools = _make_specialist_tools(local_tools, mcp_tools)
