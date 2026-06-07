@@ -1,0 +1,5 @@
+CVE ID:      CVE-2021-44228
+Published:   2021-12-10
+Status:      Analyzed
+CVSS 2.0: 7.8 (HIGH)
+Description: A critical RCE vulnerability in Log4j.
