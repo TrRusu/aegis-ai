@@ -4,6 +4,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from langchain_openai import ChatOpenAI
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage
 from langgraph.prebuilt import create_react_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -33,73 +34,53 @@ Be autonomous. Do not ask the user for clarification — investigate with the in
 """
 
 
-async def _run_agent_async(
-    task: str,
-    k: int,
-    temperature: float,
-    max_tokens: int,
-) -> tuple[str, list[dict]]:
-    local_tools = make_tools(k=k)
+class BreachTriageAgent:
+    """Autonomous breach triage agent with an injected LLM."""
 
-    mcp_client = MultiServerMCPClient({
-        "cve": {
-            "command": "python",
-            "args": [CVE_SERVER_PATH],
-            "transport": "stdio",
-        }
-    })
-    mcp_tools = await mcp_client.get_tools()
-    all_tools = local_tools + mcp_tools
+    def __init__(self, llm: BaseChatModel):
+        self._llm = llm
 
-    llm = ChatOpenAI(
-        model=OPENAI_MODEL,
-        api_key=OPENAI_API_KEY,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    @log_llm_call("Agent")
+    def run(self, task: str, k: int = 4) -> tuple[str, list[dict]]:
+        try:
+            return asyncio.run(self._run_async(task, k))
+        except Exception as exc:
+            logger.error(f"[Agent] Failed — {type(exc).__name__}: {exc}")
+            return FALLBACK_MESSAGE, []
 
-    agent = create_react_agent(llm, all_tools, prompt=AGENT_SYSTEM_PROMPT)
+    async def _run_async(self, task: str, k: int) -> tuple[str, list[dict]]:
+        local_tools = make_tools(k=k)
 
-    result = await agent.ainvoke({"messages": [HumanMessage(content=task)]})
+        mcp_client = MultiServerMCPClient({
+            "cve": {
+                "command": "python",
+                "args": [CVE_SERVER_PATH],
+                "transport": "stdio",
+            }
+        })
+        mcp_tools = await mcp_client.get_tools()
+        all_tools = local_tools + mcp_tools
 
-    # Extract final response
-    final_message = result["messages"][-1]
-    content = final_message.content
-    if isinstance(content, list):
-        content = "\n".join(
-            b.get("text", "") for b in content
-            if isinstance(b, dict) and b.get("type") == "text"
-        )
+        agent = create_react_agent(self._llm, all_tools, prompt=AGENT_SYSTEM_PROMPT)
+        result = await agent.ainvoke({"messages": [HumanMessage(content=task)]})
 
-    # Build tool call log from message history
-    tool_calls_log = []
-    for msg in result["messages"]:
-        if hasattr(msg, "tool_calls") and msg.tool_calls:
-            for tc in msg.tool_calls:
-                tool_calls_log.append({
-                    "tool": tc["name"],
-                    "input": tc["args"],
-                    "output": "",
-                })
-        if hasattr(msg, "name") and msg.name:
-            # ToolMessage — match to last log entry without output
-            for entry in reversed(tool_calls_log):
-                if entry["tool"] == msg.name and entry["output"] == "":
-                    entry["output"] = msg.content
-                    break
+        final_message = result["messages"][-1]
+        content = final_message.content
+        if isinstance(content, list):
+            content = "\n".join(
+                b.get("text", "") for b in content
+                if isinstance(b, dict) and b.get("type") == "text"
+            )
 
-    return content, tool_calls_log
+        tool_calls_log = []
+        for msg in result["messages"]:
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                for tc in msg.tool_calls:
+                    tool_calls_log.append({"tool": tc["name"], "input": tc["args"], "output": ""})
+            if hasattr(msg, "name") and msg.name:
+                for entry in reversed(tool_calls_log):
+                    if entry["tool"] == msg.name and entry["output"] == "":
+                        entry["output"] = msg.content
+                        break
 
-
-@log_llm_call("Agent")
-def run_agent(
-    task: str,
-    k: int = 4,
-    temperature: float = 0.2,
-    max_tokens: int = 2048,
-) -> tuple[str, list[dict]]:
-    try:
-        return asyncio.run(_run_agent_async(task, k, temperature, max_tokens))
-    except Exception as exc:
-        logger.error(f"[Agent] Failed — {type(exc).__name__}: {exc}")
-        return FALLBACK_MESSAGE, []
+        return content, tool_calls_log

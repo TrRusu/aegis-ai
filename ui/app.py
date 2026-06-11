@@ -11,7 +11,7 @@ TOOLS = make_tools()
 from app.config import APP_NAME
 from rag.ingestion import ingest_file, get_ingested_documents, KNOWLEDGE_BASE_DIR
 from guardrails.prompt_injection import check_prompt_injection
-from agents.breach_triage_agent import run_agent
+from agents.breach_triage_agent import BreachTriageAgent
 from agents.breach_workflow import run_workflow
 from agents.composed_workflow import run_composed_workflow
 from agents.supervisor_workflow import run_supervisor
@@ -294,12 +294,10 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
 
         elif mode == "Agent":
             with st.spinner("Aegis Triage Agent is investigating..."):
-                response, tool_calls_log = run_agent(
-                    task=prompt,
-                    k=agent_k,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                )
+                from langchain_openai import ChatOpenAI
+                from app.config import OPENAI_API_KEY, OPENAI_MODEL
+                _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
+                response, tool_calls_log = BreachTriageAgent(llm=_llm).run(prompt, k=agent_k)
             st.markdown(response.replace("$", r"\$"))
 
             if tool_calls_log:
@@ -441,12 +439,10 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
                 enriched = prompt
 
             with st.spinner("Triage agent investigating..."):
-                response, tool_calls_log = run_agent(
-                    task=enriched,
-                    k=multimodal_k,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                )
+                from langchain_openai import ChatOpenAI
+                from app.config import OPENAI_API_KEY, OPENAI_MODEL
+                _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
+                response, tool_calls_log = BreachTriageAgent(llm=_llm).run(enriched, k=multimodal_k)
             st.markdown(response.replace("$", r"\$"))
 
             if tool_calls_log:
