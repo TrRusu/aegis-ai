@@ -1,41 +1,23 @@
+"""Autonomous breach triage agent with an injected LLM.
+"""
+
 import asyncio
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from langchain_openai import ChatOpenAI
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from tools.tools import make_tools
-from app.config import OPENAI_API_KEY, OPENAI_MODEL, CVE_SERVER_PATH
+from app.config import CVE_SERVER_PATH
 from observability.logging_setup import log_llm_call, logger
 from observability.fault_tolerance import FALLBACK_MESSAGE
-
-
-AGENT_SYSTEM_PROMPT = """You are Aegis Triage, an autonomous cybersecurity breach analyst.
-
-When given an incident description, you MUST autonomously investigate it without waiting for further instructions. Your job is to:
-
-1. Search the knowledge base for relevant breach statistics (costs, attack vectors, industry benchmarks)
-2. Look up any CVEs mentioned or implied by the attack vector
-3. Estimate financial impact if enough information is available
-4. Produce a structured triage report
-
-Your report must follow this structure:
-- **Incident Summary**: what happened
-- **Threat Context**: relevant statistics from the IBM report (breach costs, attack vector data)
-- **CVE Analysis**: if a specific vulnerability is involved, its severity and details
-- **Financial Impact Estimate**: estimated cost range based on industry and record count if known
-- **Recommended Actions**: 2-3 concrete next steps
-
-Be autonomous. Do not ask the user for clarification — investigate with the information given and state clearly what is unknown.
-"""
+from prompts.breach_triage_agent import AGENT_SYSTEM_PROMPT
 
 
 class BreachTriageAgent:
-    """Autonomous breach triage agent with an injected LLM."""
 
     def __init__(self, llm: BaseChatModel):
         self._llm = llm
@@ -61,7 +43,7 @@ class BreachTriageAgent:
         mcp_tools = await mcp_client.get_tools()
         all_tools = local_tools + mcp_tools
 
-        agent = create_react_agent(self._llm, all_tools, prompt=AGENT_SYSTEM_PROMPT)
+        agent = create_agent(self._llm, all_tools, prompt=AGENT_SYSTEM_PROMPT)
         result = await agent.ainvoke({"messages": [HumanMessage(content=task)]})
 
         final_message = result["messages"][-1]

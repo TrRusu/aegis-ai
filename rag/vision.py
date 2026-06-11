@@ -1,3 +1,6 @@
+"""
+Handles all vision and LLM-based content extraction from PDF pages.
+"""
 import base64
 import re
 
@@ -5,11 +8,10 @@ import fitz
 from langchain_core.messages import HumanMessage
 from langchain_core.language_models import BaseChatModel
 
-_FIGURE_RE = re.compile(r"\bFig(?:ure)?\.?\s*\d+[A-Za-z]?", re.IGNORECASE)
+FIGURE_RE = re.compile(r"\bFig(?:ure)?\.?\s*\d+[A-Za-z]?", re.IGNORECASE)
 
 
 class VisionAnalyzer:
-    """Handles all vision and LLM-based content extraction from PDF pages."""
 
     def __init__(self, llm: BaseChatModel):
         self._llm = llm

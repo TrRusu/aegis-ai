@@ -5,18 +5,24 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import streamlit as st
 from app.llm import build_llm, build_messages
 from app.rag_chain import build_rag_response
-from tools.chain import run_with_tools
+from tools.chain import ToolChain
 from tools.tools import make_tools
-TOOLS = make_tools()
-from app.config import APP_NAME
-from rag.ingestion import ingest_file, get_ingested_documents, KNOWLEDGE_BASE_DIR
+
+@st.cache_resource
+def _get_tools():
+    return make_tools()
+
+from app.config import APP_NAME, KNOWLEDGE_BASE_DIR, OPENAI_API_KEY, OPENAI_MODEL
+from langchain_openai import ChatOpenAI
+from rag.ingestion import make_store
+from rag.document_loader import BasicPdfLoader, EnhancedPdfLoader
 from guardrails.prompt_injection import check_prompt_injection
 from agents.breach_triage_agent import BreachTriageAgent
-from agents.breach_workflow import run_workflow
-from agents.composed_workflow import run_composed_workflow
-from agents.supervisor_workflow import run_supervisor
-from agents.supervisor_hitl import run_hitl_phase1, run_hitl_phase2, requires_approval
-from agents.multimodal_agent import enrich_with_image
+from agents.breach_workflow import BreachWorkflow
+from agents.composed_workflow import ComposedWorkflow
+from agents.supervisor_workflow import SupervisorWorkflow
+from agents.supervisor_hitl import HitlSupervisor, requires_approval
+from agents.multimodal_agent import MultimodalAgent
 from agents.a2a_client import A2AClient
 from app.config import A2A_SERVER_URL
 
@@ -39,7 +45,7 @@ with st.sidebar:
     mode = st.radio("", ["Chat", "RAG", "Tools", "Agent", "Workflow", "Composed", "Supervisor", "HITL", "Multimodal", "A2A"], label_visibility="collapsed")
 
     if mode == "RAG":
-        ingested = get_ingested_documents()
+        ingested = make_store().get_ingested_documents()
         st.header("Knowledge Base")
 
         ingestion_mode = st.radio(
@@ -65,7 +71,13 @@ with st.sidebar:
                 f.write(uploaded.getbuffer())
             spinner_msg = f"Ingesting {uploaded.name} (Unstructured + GPT-4o, may take several minutes)..." if enhanced else f"Ingesting {uploaded.name}..."
             with st.spinner(spinner_msg):
-                msg = ingest_file(save_path, enhanced=enhanced)
+                if enhanced:
+                    _ingest_llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=0.0, max_tokens=2048)
+                    loader = EnhancedPdfLoader(llm=_ingest_llm, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+                else:
+                    loader = BasicPdfLoader(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+                mode_label = "enhanced" if enhanced else "basic"
+                msg = make_store().ingest(save_path, loader, mode_label=mode_label)
             st.session_state.processed_uploads.add(uploaded.name)
             st.success(msg)
             st.rerun()
@@ -90,7 +102,7 @@ with st.sidebar:
         )
         st.divider()
         st.header("Local Tools")
-        for tool in TOOLS:
+        for tool in _get_tools():
             st.markdown(f"**`{tool.name}`**")
             st.caption(tool.description)
         st.divider()
@@ -211,23 +223,15 @@ if mode == "HITL" and "hitl_pending" in st.session_state:
     col1, col2 = st.columns(2)
     if col1.button("Approve — proceed with full response", use_container_width=True, type="primary"):
         with st.spinner("Phase 2 — compiling approved response plan..."):
-            final = run_hitl_phase2(
-                incident=pending["incident"],
-                preliminary_analysis=pending["preliminary"],
-                decision="APPROVED",
-                reason=reason or "Approved by analyst.",
-            )
+            _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=0.2, max_tokens=2048)
+            final = HitlSupervisor(llm=_llm).run_phase2(pending["incident"], pending["preliminary"], "APPROVED", reason or "Approved by analyst.")
         st.session_state.messages.append({"role": "assistant", "content": final})
         del st.session_state["hitl_pending"]
         st.rerun()
     if col2.button("Reject — use conservative fallback", use_container_width=True):
         with st.spinner("Phase 2 — compiling rejection response..."):
-            final = run_hitl_phase2(
-                incident=pending["incident"],
-                preliminary_analysis=pending["preliminary"],
-                decision="REJECTED",
-                reason=reason or "Rejected by analyst.",
-            )
+            _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=0.2, max_tokens=2048)
+            final = HitlSupervisor(llm=_llm).run_phase2(pending["incident"], pending["preliminary"], "REJECTED", reason or "Rejected by analyst.")
         st.session_state.messages.append({"role": "assistant", "content": final})
         del st.session_state["hitl_pending"]
         st.rerun()
@@ -275,13 +279,10 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
 
         elif mode == "Tools":
             with st.spinner("Aegis is thinking..."):
-                response, tool_calls_log = run_with_tools(
-                    user_input=prompt,
-                    history=st.session_state.messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    k=tools_k,
-                )
+                from langchain_openai import ChatOpenAI
+                from app.config import OPENAI_API_KEY, OPENAI_MODEL
+                _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
+                response, tool_calls_log = ToolChain(llm=_llm).run(prompt, st.session_state.messages, tools=make_tools(k=tools_k))
             st.markdown(response.replace("$", r"\$"))
 
             if tool_calls_log:
@@ -310,12 +311,8 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
 
         elif mode == "Workflow":
             with st.spinner("Running breach workflow: Assess → Research → Report..."):
-                response, tool_calls_log = run_workflow(
-                    incident=prompt,
-                    k=workflow_k,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                )
+                _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
+                response, tool_calls_log = BreachWorkflow(llm=_llm).run(prompt, k=workflow_k)
             st.markdown(response.replace("$", r"\$"))
 
             if tool_calls_log:
@@ -328,12 +325,8 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
 
         elif mode == "Supervisor":
             with st.spinner("Supervisor is deciding which specialists to invoke..."):
-                response, tool_calls_log = run_supervisor(
-                    incident=prompt,
-                    k=supervisor_k,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                )
+                _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
+                response, tool_calls_log = SupervisorWorkflow(llm=_llm).run(prompt, k=supervisor_k)
             st.markdown(response.replace("$", r"\$"))
 
             with st.expander("Supervisor — specialist agents invoked"):
@@ -348,12 +341,8 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
 
         elif mode == "Composed":
             with st.spinner("Running composed workflow: Parallel → Conditional → Synthesize..."):
-                response, tool_calls_log = run_composed_workflow(
-                    incident=prompt,
-                    k=composed_k,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                )
+                _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
+                response, tool_calls_log = ComposedWorkflow(llm=_llm).run(prompt, k=composed_k)
             st.markdown(response.replace("$", r"\$"))
 
             with st.expander("Composed workflow tool calls"):
@@ -368,12 +357,8 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
 
         elif mode == "HITL":
             with st.spinner("Phase 1 — gathering intelligence..."):
-                preliminary, severity, tool_calls_log = run_hitl_phase1(
-                    incident=prompt,
-                    k=hitl_k,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                )
+                _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
+                preliminary, severity, tool_calls_log = HitlSupervisor(llm=_llm).run_phase1(prompt, k=hitl_k)
 
             if requires_approval(severity):
                 response = f"**Phase 1 complete — Severity: {severity}**\n\nThis incident requires human approval before proceeding.\n\n---\n\n{preliminary}"
@@ -388,14 +373,8 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
                 st.session_state["hitl_needs_rerun"] = True
             else:
                 with st.spinner("Phase 2 — compiling final report (no approval needed)..."):
-                    final = run_hitl_phase2(
-                        incident=prompt,
-                        preliminary_analysis=preliminary,
-                        decision="AUTO-APPROVED",
-                        reason=f"Severity {severity} is below approval threshold.",
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                    )
+                    _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
+                    final = HitlSupervisor(llm=_llm).run_phase2(prompt, preliminary, "AUTO-APPROVED", f"Severity {severity} is below approval threshold.")
                 response = final
                 st.markdown(final.replace("$", r"\$"))
 
@@ -430,7 +409,8 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
 
             if image_bytes:
                 with st.spinner("Analysing uploaded image..."):
-                    enriched = enrich_with_image(prompt, image_bytes, mime_type)
+                    _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=0.0, max_tokens=1024)
+                    enriched = MultimodalAgent(llm=_llm).enrich(prompt, image_bytes, mime_type)
                 with st.expander("Enriched incident description"):
                     st.caption("Original: " + prompt)
                     st.markdown("**After image analysis:**")

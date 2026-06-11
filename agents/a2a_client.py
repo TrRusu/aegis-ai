@@ -1,14 +1,17 @@
+"""Calls the remote Threat Intelligence Agent over HTTP.
+"""
+
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import httpx
-from app.config import A2A_SERVER_URL, A2A_TIMEOUT
+from app.config import A2A_TIMEOUT
 from observability.logging_setup import logger
 
-class A2AClient:
-    """Calls the remote Threat Intelligence Agent over HTTP."""
 
+class A2AClient:
+    
     def __init__(self, base_url: str):
         self._base_url = base_url
 

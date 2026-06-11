@@ -9,7 +9,7 @@ def test_breach_triage_agent_run_returns_tuple():
     mock_llm = MagicMock()
     agent = BreachTriageAgent(llm=mock_llm)
     with patch("agents.breach_triage_agent.MultiServerMCPClient") as mock_mcp, \
-         patch("agents.breach_triage_agent.create_react_agent") as mock_react:
+         patch("agents.breach_triage_agent.create_agent") as mock_react:
         mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
         mock_react.return_value.ainvoke = AsyncMock(return_value={
             "messages": [MagicMock(content="Triage report.", tool_calls=[])]
@@ -24,7 +24,7 @@ def test_breach_triage_agent_run_returns_string_and_list():
     mock_llm = MagicMock()
     agent = BreachTriageAgent(llm=mock_llm)
     with patch("agents.breach_triage_agent.MultiServerMCPClient") as mock_mcp, \
-         patch("agents.breach_triage_agent.create_react_agent") as mock_react:
+         patch("agents.breach_triage_agent.create_agent") as mock_react:
         mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
         mock_react.return_value.ainvoke = AsyncMock(return_value={
             "messages": [MagicMock(content="Triage report.", tool_calls=[])]

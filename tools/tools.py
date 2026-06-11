@@ -1,9 +1,12 @@
+"""
+Tools for the Threat Intelligence Agent.
+"""
+
 from langchain_core.tools import tool
 from rag.retriever import build_retriever
 
 
 class ToolSet:
-    """Builds LangChain tools with an injected retriever."""
 
     def __init__(self, retriever):
         self._retriever = retriever
@@ -13,9 +16,7 @@ class ToolSet:
 
         @tool
         def search_knowledge_base(query: str) -> str:
-            """Search the selected file for information relevant to the query.
-               Use this when you need specific statistics, findings, or details from the report.
-            """
+            """Search the knowledge base for breach cost and regulatory information."""
             docs = retriever.invoke(query)
             if not docs:
                 return "No relevant information found in the knowledge base."
@@ -27,7 +28,7 @@ class ToolSet:
 
         @tool
         def calculate_breach_cost(records_lost: int, cost_per_record: float) -> str:
-            """Estimate a breach cost by multiplying records lost by a per-record cost."""
+            """Calculate the estimated financial cost of a data breach given record count and cost per record."""
             total = records_lost * cost_per_record
             return (
                 f"Estimated breach cost: USD {total:,.2f} "

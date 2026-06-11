@@ -1,15 +1,13 @@
+"""Module for building retrievers for RAG.
+"""
 import os
 
-from langchain_openai import OpenAIEmbeddings
-from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
 from langchain_classic.retrievers import EnsembleRetriever
 from langchain_core.documents import Document
 from langchain_core.vectorstores import VectorStore
-from app.config import OPENAI_API_KEY, OPENAI_EMBEDDING_MODEL
-
-CHROMA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".chroma"))
-_KB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "knowledge_base"))
+from app.config import KNOWLEDGE_BASE_DIR
+from rag.store import ChromaStore
 
 
 class VectorRetriever:
@@ -22,7 +20,7 @@ class VectorRetriever:
         search_kwargs = {"k": k}
         if selected_docs:
             search_kwargs["filter"] = {"source": {"$in": [
-                os.path.join(_KB_DIR, doc) for doc in selected_docs
+                os.path.join(KNOWLEDGE_BASE_DIR, doc) for doc in selected_docs
             ]}}
         return self._vectorstore.as_retriever(search_kwargs=search_kwargs)
 
@@ -37,13 +35,13 @@ class HybridRetriever:
         search_kwargs = {"k": k}
         if selected_docs:
             search_kwargs["filter"] = {"source": {"$in": [
-                os.path.join(_KB_DIR, doc) for doc in selected_docs
+                os.path.join(KNOWLEDGE_BASE_DIR, doc) for doc in selected_docs
             ]}}
         vector_retriever = self._vectorstore.as_retriever(search_kwargs=search_kwargs)
 
         all_docs = self._load_all_docs()
         if selected_docs:
-            selected_paths = {os.path.join(_KB_DIR, doc) for doc in selected_docs}
+            selected_paths = {os.path.join(KNOWLEDGE_BASE_DIR, doc) for doc in selected_docs}
             all_docs = [d for d in all_docs if d.metadata.get("source") in selected_paths]
 
         bm25_retriever = BM25Retriever.from_documents(all_docs, k=k)
@@ -57,17 +55,12 @@ class HybridRetriever:
         ]
 
 
-def _make_vectorstore() -> Chroma:
-    embeddings = OpenAIEmbeddings(model=OPENAI_EMBEDDING_MODEL, api_key=OPENAI_API_KEY)
-    return Chroma(persist_directory=CHROMA_DIR, embedding_function=embeddings)
-
-
 def build_retriever(
     k: int = 4,
     selected_docs: list[str] | None = None,
     hybrid: bool = False,
 ):
-    vectorstore = _make_vectorstore()
+    vectorstore = ChromaStore().vectorstore
     if hybrid:
         return HybridRetriever(vectorstore=vectorstore).build(k=k, selected_docs=selected_docs)
     return VectorRetriever(vectorstore=vectorstore).build(k=k, selected_docs=selected_docs)
