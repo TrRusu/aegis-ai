@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 
 def test_threat_intel_agent_returns_string():
-    from a2a_server.threat_intel_server import ThreatIntelAgent
+    from a2a_server.threat_intel_agent import ThreatIntelAgent
     mock_llm = MagicMock()
     mock_llm.invoke.return_value = MagicMock(content="MITRE ATT&CK analysis result.")
     agent = ThreatIntelAgent(llm=mock_llm)
@@ -14,7 +14,7 @@ def test_threat_intel_agent_returns_string():
 
 
 def test_threat_intel_agent_delegates_to_injected_llm():
-    from a2a_server.threat_intel_server import ThreatIntelAgent
+    from a2a_server.threat_intel_agent import ThreatIntelAgent
     mock_llm = MagicMock()
     mock_llm.invoke.return_value = MagicMock(content="Analysis.")
     agent = ThreatIntelAgent(llm=mock_llm)
@@ -23,7 +23,7 @@ def test_threat_intel_agent_delegates_to_injected_llm():
 
 
 def test_threat_intel_agent_returns_llm_content():
-    from a2a_server.threat_intel_server import ThreatIntelAgent
+    from a2a_server.threat_intel_agent import ThreatIntelAgent
     mock_llm = MagicMock()
     mock_llm.invoke.return_value = MagicMock(content="Threat actor: APT29.")
     agent = ThreatIntelAgent(llm=mock_llm)
@@ -32,7 +32,7 @@ def test_threat_intel_agent_returns_llm_content():
 
 
 def test_threat_intel_agent_handles_list_content_format():
-    from a2a_server.threat_intel_server import ThreatIntelAgent
+    from a2a_server.threat_intel_agent import ThreatIntelAgent
     mock_llm = MagicMock()
     mock_llm.invoke.return_value = MagicMock(content=[
         {"type": "text", "text": "MITRE mapping complete."},
@@ -43,7 +43,7 @@ def test_threat_intel_agent_handles_list_content_format():
 
 
 def test_threat_intel_agent_passes_incident_to_llm():
-    from a2a_server.threat_intel_server import ThreatIntelAgent
+    from a2a_server.threat_intel_agent import ThreatIntelAgent
     from langchain_core.messages import HumanMessage
     mock_llm = MagicMock()
     mock_llm.invoke.return_value = MagicMock(content="Done.")
