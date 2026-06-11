@@ -56,7 +56,7 @@ def test_hybrid_retriever_build_returns_ensemble_retriever():
 def test_hybrid_retriever_filters_docs_by_selected():
     from rag.retriever import HybridRetriever
     import os
-    kb_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "knowledge_base"))
+    kb_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "knowledge_base"))
     mock_vectorstore = MagicMock()
     mock_vectorstore.as_retriever.return_value = MagicMock()
     mock_vectorstore._collection.get.return_value = {
