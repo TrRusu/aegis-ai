@@ -6,7 +6,9 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from app.config import CVE_SERVER_PATH
-from observability.logging_setup import log_llm_call, logger
+from observability.logging_setup import CallLogger, logger
+
+_call_logger = CallLogger()
 from observability.fault_tolerance import FaultTolerance, FALLBACK_MESSAGE
 
 _ft = FaultTolerance()
@@ -25,7 +27,7 @@ class ToolChain:
     async def _invoke_llm(self, llm_with_tools, messages):
         return await _ft.invoke_with_timeout(llm_with_tools.ainvoke(messages))
 
-    @log_llm_call("Tools")
+    @_call_logger.log_llm_call("Tools")
     async def _run_async(
         self,
         user_input: str,

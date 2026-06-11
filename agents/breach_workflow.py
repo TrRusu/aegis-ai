@@ -13,7 +13,9 @@ from langgraph.graph import StateGraph, START, END
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from tools.tools import make_tools
 from app.config import CVE_SERVER_PATH
-from observability.logging_setup import log_llm_call, logger
+from observability.logging_setup import CallLogger, logger
+
+_call_logger = CallLogger()
 from observability.fault_tolerance import FALLBACK_MESSAGE
 from app.utils import extract_text
 from langchain.agents import create_agent
@@ -36,7 +38,7 @@ class BreachWorkflow:
     def __init__(self, llm: BaseChatModel):
         self._llm = llm
 
-    @log_llm_call("Workflow")
+    @_call_logger.log_llm_call("Workflow")
     def run(self, incident: str, k: int = 6) -> tuple[str, list[dict]]:
         try:
             return asyncio.run(self._run_async(incident, k))
