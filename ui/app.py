@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import streamlit as st
 from app.llm import build_llm, build_messages
-from app.rag_chain import build_rag_response
+from app.rag_chain import RagChain
 from tools.chain import ToolChain
 from tools.tools import make_tools
 
@@ -261,7 +261,8 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
                 response = "No documents selected. Please upload and select a document in the sidebar."
                 st.warning(response)
             else:
-                stream, source_docs = build_rag_response(
+                _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens, streaming=True)
+                stream, source_docs = RagChain(llm=_llm).run(
                     user_input=prompt,
                     history=st.session_state.messages,
                     temperature=temperature,
