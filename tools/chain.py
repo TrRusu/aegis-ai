@@ -1,5 +1,6 @@
 import asyncio
 from langchain_openai import ChatOpenAI
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from tools.tools import make_tools
@@ -23,13 +24,10 @@ Guidelines:
 - Never provide instructions that could be used to carry out or facilitate a breach.
 """
 
-
 MAX_ROUNDS = 5
 
 
 def _extract_content(content) -> str:
-    """Normalise LLM response content to a plain string.
-    Newer openai SDK versions return a list of typed content blocks."""
     if isinstance(content, str):
         return content
     if isinstance(content, list):
@@ -40,83 +38,91 @@ def _extract_content(content) -> str:
     return str(content)
 
 
-@with_retry()
-async def _invoke_llm(llm_with_tools, messages):
-    return await invoke_with_timeout(llm_with_tools.ainvoke(messages))
+class ToolChain:
+    """Runs the multi-turn tool-calling conversation loop with an injected LLM."""
 
+    def __init__(self, llm: BaseChatModel):
+        self._llm = llm
 
-@log_llm_call("Tools")
-async def _run_async(
-    user_input: str,
-    history: list[dict],
-    temperature: float,
-    max_tokens: int,
-    k: int,
-) -> tuple[str, list[dict]]:
-    local_tools = make_tools(k=k)
+    @with_retry()
+    async def _invoke_llm(self, llm_with_tools, messages):
+        return await invoke_with_timeout(llm_with_tools.ainvoke(messages))
 
-    mcp_client = MultiServerMCPClient({
-        "cve": {
-            "command": "python",
-            "args": [CVE_SERVER_PATH],
-            "transport": "stdio",
-        }
-    })
-    mcp_tools = await mcp_client.get_tools()
-    all_tools = local_tools + mcp_tools
-    tool_map = {t.name: t for t in all_tools}
+    @log_llm_call("Tools")
+    async def _run_async(
+        self,
+        user_input: str,
+        history: list[dict],
+        tools: list,
+    ) -> tuple[str, list[dict]]:
+        mcp_client = MultiServerMCPClient({
+            "cve": {
+                "command": "python",
+                "args": [CVE_SERVER_PATH],
+                "transport": "stdio",
+            }
+        })
+        mcp_tools = await mcp_client.get_tools()
+        all_tools = tools + mcp_tools
+        tool_map = {t.name: t for t in all_tools}
 
-    llm = ChatOpenAI(
-        model=OPENAI_MODEL,
-        api_key=OPENAI_API_KEY,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
-    llm_with_tools = llm.bind_tools(all_tools)
+        llm_with_tools = self._llm.bind_tools(all_tools)
 
-    messages = [SystemMessage(content=SYSTEM_PROMPT)]
-    for msg in history[:-1]:
-        if msg["role"] == "user":
-            messages.append(HumanMessage(content=msg["content"]))
-        elif msg["role"] == "assistant":
-            messages.append(AIMessage(content=msg["content"]))
-    messages.append(HumanMessage(content=user_input))
+        messages = [SystemMessage(content=SYSTEM_PROMPT)]
+        for msg in history[:-1]:
+            if msg["role"] == "user":
+                messages.append(HumanMessage(content=msg["content"]))
+            elif msg["role"] == "assistant":
+                messages.append(AIMessage(content=msg["content"]))
+        messages.append(HumanMessage(content=user_input))
 
-    tool_calls_log = []
+        tool_calls_log = []
 
-    for _ in range(MAX_ROUNDS):
-        response = await _invoke_llm(llm_with_tools, messages)
+        for _ in range(MAX_ROUNDS):
+            response = await self._invoke_llm(llm_with_tools, messages)
 
-        if not response.tool_calls:
-            return _extract_content(response.content), tool_calls_log
+            if not response.tool_calls:
+                return _extract_content(response.content), tool_calls_log
 
-        messages.append(response)
+            messages.append(response)
 
-        for tool_call in response.tool_calls:
-            tool_name = tool_call["name"]
-            tool_args = tool_call["args"]
-            tool_result = await tool_map[tool_name].ainvoke(tool_args)
+            for tool_call in response.tool_calls:
+                tool_name = tool_call["name"]
+                tool_args = tool_call["args"]
+                tool_result = await tool_map[tool_name].ainvoke(tool_args)
 
-            if isinstance(tool_result, list):
-                tool_text = "\n".join(
-                    b["text"] for b in tool_result
-                    if isinstance(b, dict) and b.get("type") == "text"
-                ) or str(tool_result)
-            else:
-                tool_text = str(tool_result)
+                if isinstance(tool_result, list):
+                    tool_text = "\n".join(
+                        b["text"] for b in tool_result
+                        if isinstance(b, dict) and b.get("type") == "text"
+                    ) or str(tool_result)
+                else:
+                    tool_text = str(tool_result)
 
-            tool_calls_log.append({
-                "tool": tool_name,
-                "input": tool_args,
-                "output": tool_text,
-            })
+                tool_calls_log.append({
+                    "tool": tool_name,
+                    "input": tool_args,
+                    "output": tool_text,
+                })
 
-            messages.append(ToolMessage(
-                content=tool_text,
-                tool_call_id=tool_call["id"],
-            ))
+                messages.append(ToolMessage(
+                    content=tool_text,
+                    tool_call_id=tool_call["id"],
+                ))
 
-    return _extract_content(response.content), tool_calls_log
+        return _extract_content(response.content), tool_calls_log
+
+    def run(
+        self,
+        user_input: str,
+        history: list[dict],
+        tools: list,
+    ) -> tuple[str, list[dict]]:
+        try:
+            return asyncio.run(self._run_async(user_input, history, tools))
+        except Exception as exc:
+            logger.error(f"[Tools] All retries exhausted — {type(exc).__name__}: {exc}")
+            return FALLBACK_MESSAGE, []
 
 
 def run_with_tools(
@@ -126,8 +132,11 @@ def run_with_tools(
     max_tokens: int,
     k: int = 4,
 ) -> tuple[str, list[dict]]:
-    try:
-        return asyncio.run(_run_async(user_input, history, temperature, max_tokens, k))
-    except Exception as exc:
-        logger.error(f"[Tools] All retries exhausted — {type(exc).__name__}: {exc}")
-        return FALLBACK_MESSAGE, []
+    llm = ChatOpenAI(
+        model=OPENAI_MODEL,
+        api_key=OPENAI_API_KEY,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    tools = make_tools(k=k)
+    return ToolChain(llm=llm).run(user_input, history, tools=tools)
