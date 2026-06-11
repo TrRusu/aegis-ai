@@ -28,7 +28,7 @@ def test_cve_lookup_normalises_id_without_prefix():
     mock_client = MagicMock()
     mock_client.get.return_value.status_code = 200
     mock_client.get.return_value.json.return_value = _make_nvd_response("CVE-2021-44228")
-    result = CVELookup(client=mock_client).lookup("2021-44228")
+    CVELookup(client=mock_client).lookup("2021-44228")
     call_params = mock_client.get.call_args
     assert call_params.kwargs["params"]["cveId"] == "CVE-2021-44228"
 
