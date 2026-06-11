@@ -2,14 +2,14 @@
 Approval tests for the tools module.
 """
 import json
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from approvaltests import verify
 from langchain_core.documents import Document
 from langchain_core.messages import AIMessage
 
 from tools.tools import make_tools
-from tools.chain import run_with_tools
+from tools.chain import ToolChain
 
 
 @patch("tools.tools.build_retriever")
@@ -66,17 +66,16 @@ def test_make_tools_returns_two_tools(mock_retriever):
 
     verify(json.dumps([t.name for t in tools], indent=2))
 
-@patch("tools.chain.ChatOpenAI")
 @patch("tools.chain.MultiServerMCPClient")
-@patch("tools.chain.make_tools", return_value=[])
-def test_run_with_tools_returns_tuple(mock_tools, mock_mcp, mock_llm):
-    """Approval: run_with_tools returns a (str, list) tuple."""
+def test_run_with_tools_returns_tuple(mock_mcp):
+    """Approval: ToolChain.run returns a (str, list) tuple."""
     mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
+    mock_llm = MagicMock()
     ai_msg = AIMessage(content="Final answer.")
     ai_msg.tool_calls = []
-    mock_llm.return_value.bind_tools.return_value.ainvoke = AsyncMock(return_value=ai_msg)
+    mock_llm.bind_tools.return_value.ainvoke = AsyncMock(return_value=ai_msg)
 
-    result = run_with_tools("What is the average breach cost?", [], 0.2, 1024)
+    result = ToolChain(llm=mock_llm).run("What is the average breach cost?", [], [])
 
     verify(json.dumps({
         "return_type": type(result).__name__,
@@ -84,27 +83,25 @@ def test_run_with_tools_returns_tuple(mock_tools, mock_mcp, mock_llm):
         "element_types": [type(x).__name__ for x in result],
     }, indent=2))
 
-@patch("tools.chain.ChatOpenAI")
 @patch("tools.chain.MultiServerMCPClient")
-@patch("tools.chain.make_tools", return_value=[])
-def test_run_with_tools_empty_tool_calls_when_no_tools_used(mock_tools, mock_mcp, mock_llm):
+def test_run_with_tools_empty_tool_calls_when_no_tools_used(mock_mcp):
     """Approval: tool_calls_log is empty when the LLM responds without calling any tools."""
     mock_mcp.return_value.get_tools = AsyncMock(return_value=[])
+    mock_llm = MagicMock()
     ai_msg = AIMessage(content="Direct answer.")
     ai_msg.tool_calls = []
-    mock_llm.return_value.bind_tools.return_value.ainvoke = AsyncMock(return_value=ai_msg)
+    mock_llm.bind_tools.return_value.ainvoke = AsyncMock(return_value=ai_msg)
 
-    _, tool_calls_log = run_with_tools("Hello", [], 0.2, 1024)
+    _, tool_calls_log = ToolChain(llm=mock_llm).run("Hello", [], [])
 
     verify(json.dumps(tool_calls_log, indent=2))
 
-@patch("tools.chain.ChatOpenAI")
 @patch("tools.chain.MultiServerMCPClient")
-@patch("tools.chain.make_tools", return_value=[])
-def test_run_with_tools_failure_behavior(mock_tools, mock_mcp, mock_llm):
-    """Approval: run_with_tools returns fallback and empty list on failure."""
+def test_run_with_tools_failure_behavior(mock_mcp):
+    """Approval: ToolChain.run returns fallback and empty list on failure."""
     mock_mcp.return_value.get_tools = AsyncMock(side_effect=Exception("MCP failed"))
+    mock_llm = MagicMock()
 
-    response, tool_calls = run_with_tools("test", [], 0.2, 1024)
+    response, tool_calls = ToolChain(llm=mock_llm).run("test", [], [])
 
     verify(json.dumps({"response": response, "tool_calls": tool_calls}, indent=2))

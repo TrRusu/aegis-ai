@@ -13,7 +13,6 @@ from rag.retriever import build_retriever
 
 
 def _make_mock_vectorstore(docs=None):
-    """Helper to create a mock vector store with retriever output."""
     if docs is None:
         docs = [
             Document(page_content="Healthcare breach cost was $9.77M", metadata={"source": "test.pdf", "page": 10}),
@@ -27,12 +26,11 @@ def _make_mock_vectorstore(docs=None):
     }
     return mock_vs, docs
 
-@patch("rag.retriever.Chroma")
-@patch("rag.retriever.OpenAIEmbeddings")
-def test_vector_retriever_document_structure(mock_embeddings, mock_chroma):
+@patch("rag.retriever.ChromaStore")
+def test_vector_retriever_document_structure(mock_chroma_store):
     """Approval: vector retriever returns documents with correct structure."""
     mock_vs, expected_docs = _make_mock_vectorstore()
-    mock_chroma.return_value = mock_vs
+    mock_chroma_store.return_value.vectorstore = mock_vs
 
     retriever = build_retriever(k=2, hybrid=False)
     results = retriever.invoke("healthcare breach cost")
@@ -43,9 +41,8 @@ def test_vector_retriever_document_structure(mock_embeddings, mock_chroma):
         "has_page_content": all(len(d.page_content) > 0 for d in results),
     }, indent=2))
 
-@patch("rag.retriever.Chroma")
-@patch("rag.retriever.OpenAIEmbeddings")
-def test_hybrid_retriever_type(mock_embeddings, mock_chroma):
+@patch("rag.retriever.ChromaStore")
+def test_hybrid_retriever_type(mock_chroma_store):
     """Approval: hybrid=True returns an EnsembleRetriever."""
     docs = [
         Document(page_content="Healthcare breach cost was $9.77M", metadata={"source": "test.pdf", "page": 10}),
@@ -58,18 +55,17 @@ def test_hybrid_retriever_type(mock_embeddings, mock_chroma):
     }
     real_vector_retriever = BM25Retriever.from_documents(docs, k=2)
     mock_vs.as_retriever.return_value = real_vector_retriever
-    mock_chroma.return_value = mock_vs
+    mock_chroma_store.return_value.vectorstore = mock_vs
 
     retriever = build_retriever(k=2, hybrid=True)
 
     verify(type(retriever).__name__)
 
-@patch("rag.retriever.Chroma")
-@patch("rag.retriever.OpenAIEmbeddings")
-def test_retrieved_document_metadata_fields(mock_embeddings, mock_chroma):
+@patch("rag.retriever.ChromaStore")
+def test_retrieved_document_metadata_fields(mock_chroma_store):
     """Approval: each retrieved document has required metadata fields."""
     mock_vs, expected_docs = _make_mock_vectorstore()
-    mock_chroma.return_value = mock_vs
+    mock_chroma_store.return_value.vectorstore = mock_vs
 
     retriever = build_retriever(k=2, hybrid=False)
     results = retriever.invoke("test query")

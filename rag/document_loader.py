@@ -1,17 +1,14 @@
 """
-PDF loading strategies — BasicPdfLoader and EnhancedPdfLoader.
+PDF loading strategies - BasicPdfLoader and EnhancedPdfLoader.
 """
 import os
-import re
 
 from langchain_community.document_loaders import UnstructuredPDFLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from langchain_core.language_models import BaseChatModel
 
-from rag.vision import VisionAnalyzer
-
-_FIGURE_RE = re.compile(r"\bFig(?:ure)?\.?\s*\d+[A-Za-z]?", re.IGNORECASE)
+from rag.vision import VisionAnalyzer, FIGURE_RE
 
 
 class BasicPdfLoader:
@@ -95,7 +92,7 @@ class EnhancedPdfLoader:
             elif category == "FigureCaption" or (
                 category not in ("Table", "Title")
                 and len(elem.page_content) < 300
-                and _FIGURE_RE.search(elem.page_content)
+                and FIGURE_RE.search(elem.page_content)
             ):
                 if page not in chart_pages_done:
                     chart_pages_done.add(page)

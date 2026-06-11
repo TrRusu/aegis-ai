@@ -1,12 +1,5 @@
 """
 Threat Intelligence A2A Server — runs as a standalone service on port 8888.
-
-Implements a simplified Agent-to-Agent protocol:
-  GET  /.well-known/agent-card.json  →  describes this agent's capabilities
-  POST /run                           →  accepts an incident, returns MITRE ATT&CK analysis
-
-Start with:
-    python a2a_server/threat_intel_server.py
 """
 
 import os
@@ -20,10 +13,6 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from app.config import OPENAI_API_KEY, OPENAI_MODEL
 
 app = FastAPI(title="Aegis Threat Intelligence Agent", version="1.0.0")
-
-# ── Agent Card ─────────────────────────────────────────────────────────────────
-# Published at /.well-known/agent-card.json so clients can discover capabilities.
-# Equivalent to the tutorial's @PublicAgentCard / AgentCard builder.
 
 AGENT_CARD = {
     "name": "Threat Intelligence Agent",
