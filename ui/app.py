@@ -16,7 +16,7 @@ from app.config import APP_NAME, KNOWLEDGE_BASE_DIR, OPENAI_API_KEY, OPENAI_MODE
 from langchain_openai import ChatOpenAI
 from rag.ingestion import make_store
 from rag.document_loader import BasicPdfLoader, EnhancedPdfLoader
-from guardrails.prompt_injection import check_prompt_injection
+from guardrails.prompt_injection import PromptInjectionGuard
 from agents.breach_triage_agent import BreachTriageAgent
 from agents.breach_workflow import BreachWorkflow
 from agents.composed_workflow import ComposedWorkflow
@@ -244,7 +244,8 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
 
     with st.chat_message("assistant"):
 
-        is_injection, injection_score = check_prompt_injection(prompt)
+        _guard_llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=0.0, max_tokens=5)
+        is_injection, injection_score = PromptInjectionGuard(llm=_guard_llm).check(prompt)
 
         if is_injection:
             response = f"Message blocked — potential prompt injection detected (risk score: {injection_score:.2f}). Please rephrase your question."
