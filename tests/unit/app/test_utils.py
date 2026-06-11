@@ -1,8 +1,6 @@
 """
 Unit tests for app/utils.py.
 """
-import asyncio
-from unittest.mock import AsyncMock
 
 from app.utils import extract_text, run_in_thread
 
