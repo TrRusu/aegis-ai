@@ -7,31 +7,33 @@ from unittest.mock import MagicMock, patch
 from approvaltests import verify
 from langchain_core.documents import Document
 
-from app.rag_chain import build_rag_response
+from app.rag_chain import RagChain
 
 
 def _make_mock_docs():
-    """Helper to create mock documents returned by the retriever."""
     return [
         Document(page_content="Healthcare breach cost was $9.77M", metadata={"source": "test.pdf", "page": 10}),
         Document(page_content="Average cost per record is $169", metadata={"source": "test.pdf", "page": 5}),
     ]
 
 def _make_mock_chunk(text):
-    """Helper to create a mock chunk returned by the LLM stream."""
     chunk = MagicMock()
     chunk.content = text
     return chunk
 
-@patch("app.rag_chain.ChatOpenAI")
+def _make_llm(docs, stream_chunks):
+    mock_llm = MagicMock()
+    mock_llm.stream.return_value = iter(stream_chunks)
+    return mock_llm
+
 @patch("app.rag_chain.build_retriever")
-def test_build_rag_response_returns_stream_and_docs(mock_retriever, mock_llm):
-    """Approval: build_rag_response returns a (stream, list[Document]) tuple."""
+def test_build_rag_response_returns_stream_and_docs(mock_retriever):
+    """Approval: RagChain.run returns a (stream, list[Document]) tuple."""
     docs = _make_mock_docs()
     mock_retriever.return_value.invoke.return_value = docs
-    mock_llm.return_value.stream.return_value = iter([_make_mock_chunk("RAG answer.")])
+    mock_llm = _make_llm(docs, [_make_mock_chunk("RAG answer.")])
 
-    stream, source_docs = build_rag_response(
+    stream, source_docs = RagChain(llm=mock_llm).run(
         user_input="What is the healthcare breach cost?",
         history=[],
         temperature=0.2,
@@ -44,15 +46,14 @@ def test_build_rag_response_returns_stream_and_docs(mock_retriever, mock_llm):
         "stream_is_iterable": hasattr(stream, "__iter__"),
     }, indent=2))
 
-@patch("app.rag_chain.ChatOpenAI")
 @patch("app.rag_chain.build_retriever")
-def test_build_rag_response_returns_correct_docs(mock_retriever, mock_llm):
+def test_build_rag_response_returns_correct_docs(mock_retriever):
     """Approval: source docs returned have correct metadata fields."""
     docs = _make_mock_docs()
     mock_retriever.return_value.invoke.return_value = docs
-    mock_llm.return_value.stream.return_value = iter([_make_mock_chunk("answer")])
+    mock_llm = _make_llm(docs, [_make_mock_chunk("answer")])
 
-    _, source_docs = build_rag_response(
+    _, source_docs = RagChain(llm=mock_llm).run(
         user_input="test",
         history=[],
         temperature=0.2,
@@ -66,10 +67,11 @@ def test_build_rag_response_returns_correct_docs(mock_retriever, mock_llm):
 
 @patch("app.rag_chain.build_retriever")
 def test_build_rag_response_failure_returns_fallback_stream(mock_retriever):
-    """Approval: on failure, build_rag_response returns a stream with fallback message."""
+    """Approval: on failure, RagChain.run returns a stream with fallback message."""
     mock_retriever.side_effect = Exception("Retriever failed")
+    mock_llm = MagicMock()
 
-    stream, source_docs = build_rag_response(
+    stream, source_docs = RagChain(llm=mock_llm).run(
         user_input="test",
         history=[],
         temperature=0.2,
