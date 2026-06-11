@@ -17,7 +17,10 @@ from agents.composed_workflow import run_composed_workflow
 from agents.supervisor_workflow import run_supervisor
 from agents.supervisor_hitl import run_hitl_phase1, run_hitl_phase2, requires_approval
 from agents.multimodal_agent import enrich_with_image
-from agents.a2a_client import call_threat_intel_agent, fetch_agent_card, is_server_available
+from agents.a2a_client import A2AClient
+from app.config import A2A_SERVER_URL
+
+_a2a_client = A2AClient(base_url=A2A_SERVER_URL)
 
 st.set_page_config(page_title=APP_NAME, page_icon="🛡️", layout="centered")
 
@@ -142,10 +145,10 @@ with st.sidebar:
     elif mode == "A2A":
         st.header("A2A — Remote Agent")
         st.divider()
-        if is_server_available():
+        if _a2a_client.is_server_available():
             st.success("Threat Intelligence Agent online at localhost:8888")
             try:
-                card = fetch_agent_card()
+                card = _a2a_client.fetch_agent_card()
                 st.caption(f"Agent: **{card['name']}** v{card['version']}")
                 for skill in card.get("skills", []):
                     st.markdown(f"**Skill:** {skill['name']}")
@@ -409,13 +412,13 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
                     st.caption("No specialist agents invoked.")
 
         elif mode == "A2A":
-            if not is_server_available():
+            if not _a2a_client.is_server_available():
                 response = "Remote Threat Intelligence Agent is offline. Start it with: `python a2a_server/threat_intel_server.py`"
                 st.error(response)
             else:
                 with st.spinner("Calling remote Threat Intelligence Agent at localhost:8888..."):
                     try:
-                        analysis = call_threat_intel_agent(prompt)
+                        analysis = _a2a_client.call_threat_intel_agent(prompt)
                         response = analysis
                         st.markdown(response)
                         st.caption("Analysis provided by remote ThreatIntelAgent via A2A protocol.")

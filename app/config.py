@@ -13,3 +13,6 @@ APP_ENV = os.getenv("APP_ENV", "development")
 CVE_SERVER_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "mcp_servers", "cve_server.py")
 )
+
+A2A_SERVER_URL = os.getenv("A2A_SERVER_URL", "http://localhost:8888")
+A2A_TIMEOUT = int(os.getenv("A2A_TIMEOUT", "30"))
