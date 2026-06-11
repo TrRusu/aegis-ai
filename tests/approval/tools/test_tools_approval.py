@@ -12,21 +12,24 @@ from tools.tools import make_tools
 from tools.chain import run_with_tools
 
 
-def test_calculate_breach_cost_return_message():
+@patch("tools.tools.build_retriever")
+def test_calculate_breach_cost_return_message(mock_retriever):
     """Approval: calculate_breach_cost returns a formatted cost string."""
     tools = make_tools()
     calculate = next(t for t in tools if t.name == "calculate_breach_cost")
 
     verify(calculate.invoke({"records_lost": 80000, "cost_per_record": 169.0}))
 
-def test_calculate_breach_cost_small_numbers():
+@patch("tools.tools.build_retriever")
+def test_calculate_breach_cost_small_numbers(mock_retriever):
     """Approval: calculate_breach_cost formats small numbers correctly."""
     tools = make_tools()
     calculate = next(t for t in tools if t.name == "calculate_breach_cost")
 
     verify(calculate.invoke({"records_lost": 100, "cost_per_record": 9.99}))
 
-def test_calculate_breach_cost_large_numbers():
+@patch("tools.tools.build_retriever")
+def test_calculate_breach_cost_large_numbers(mock_retriever):
     """Approval: calculate_breach_cost formats large numbers with commas."""
     tools = make_tools()
     calculate = next(t for t in tools if t.name == "calculate_breach_cost")
@@ -56,7 +59,8 @@ def test_search_knowledge_base_no_results_message(mock_retriever):
 
     verify(search.invoke({"query": "nonexistent topic"}))
 
-def test_make_tools_returns_two_tools():
+@patch("tools.tools.build_retriever")
+def test_make_tools_returns_two_tools(mock_retriever):
     """Approval: make_tools returns exactly two tools with the correct names."""
     tools = make_tools()
 
