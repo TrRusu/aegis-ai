@@ -1,3 +1,6 @@
+"""Configurable retry and timeout utilities with injectable config.
+"""
+
 import asyncio
 import logging
 from tenacity import (
@@ -18,17 +21,20 @@ FALLBACK_MESSAGE = (
 )
 
 
-def with_retry():
-    """Tenacity retry decorator: 3 attempts, exponential backoff 1s → 10s."""
-    return retry(
-        stop=stop_after_attempt(MAX_RETRIES),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
-        retry=retry_if_exception_type(Exception),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-        reraise=True,
-    )
+class FaultTolerance:
 
+    def __init__(self, max_retries: int = MAX_RETRIES, timeout: int = TIMEOUT_SECONDS):
+        self._max_retries = max_retries
+        self._timeout = timeout
 
-async def invoke_with_timeout(coro, timeout: int = TIMEOUT_SECONDS):
-    """Run an awaitable with a hard timeout. Raises asyncio.TimeoutError on breach."""
-    return await asyncio.wait_for(coro, timeout=timeout)
+    def retry(self):
+        return retry(
+            stop=stop_after_attempt(self._max_retries),
+            wait=wait_exponential(multiplier=1, min=1, max=10),
+            retry=retry_if_exception_type(Exception),
+            before_sleep=before_sleep_log(logger, logging.WARNING),
+            reraise=True,
+        )
+
+    async def invoke_with_timeout(self, coro, timeout: int = None):
+        return await asyncio.wait_for(coro, timeout=timeout if timeout is not None else self._timeout)

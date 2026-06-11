@@ -2,7 +2,9 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from rag.retriever import build_retriever
 from app.config import OPENAI_API_KEY, OPENAI_MODEL
-from observability.logging_setup import log_llm_call
+from observability.logging_setup import CallLogger
+
+_call_logger = CallLogger()
 from observability.fault_tolerance import FALLBACK_MESSAGE
 
 RAG_SYSTEM_PROMPT = """You are Aegis, an AI-powered cybersecurity analyst assistant specializing in data breach analysis.
@@ -15,7 +17,7 @@ Context:
 """
 
 
-@log_llm_call("RAG")
+@_call_logger.log_llm_call("RAG")
 def build_rag_response(
     user_input: str,
     history: list[dict],

@@ -13,7 +13,9 @@ from langchain.agents import create_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from tools.tools import make_tools
 from app.config import CVE_SERVER_PATH
-from observability.logging_setup import log_llm_call, logger
+from observability.logging_setup import CallLogger, logger
+
+_call_logger = CallLogger()
 from observability.fault_tolerance import FALLBACK_MESSAGE
 from app.utils import extract_text, run_in_thread
 from prompts.supervisor_hitl import PHASE1_PROMPT, PHASE2_PROMPT, CVE_ANALYST_PROMPT, COST_ANALYST_PROMPT, COMPLIANCE_ANALYST_PROMPT
@@ -44,7 +46,7 @@ class HitlSupervisor:
     def __init__(self, llm: BaseChatModel):
         self._llm = llm
 
-    @log_llm_call("HITL-Phase1")
+    @_call_logger.log_llm_call("HITL-Phase1")
     def run_phase1(self, incident: str, k: int = 6) -> tuple[str, str, list[dict]]:
         try:
             return asyncio.run(self._phase1_async(incident, k))
@@ -52,7 +54,7 @@ class HitlSupervisor:
             logger.error(f"[HITL] Phase 1 failed — {type(exc).__name__}: {exc}")
             return FALLBACK_MESSAGE, "Unknown", []
 
-    @log_llm_call("HITL-Phase2")
+    @_call_logger.log_llm_call("HITL-Phase2")
     def run_phase2(
         self,
         incident: str,

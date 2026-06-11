@@ -12,7 +12,9 @@ from langchain.agents import create_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from tools.tools import make_tools
 from app.config import CVE_SERVER_PATH
-from observability.logging_setup import log_llm_call, logger
+from observability.logging_setup import CallLogger, logger
+
+_call_logger = CallLogger()
 from observability.fault_tolerance import FALLBACK_MESSAGE
 from prompts.breach_triage_agent import AGENT_SYSTEM_PROMPT
 
@@ -22,7 +24,7 @@ class BreachTriageAgent:
     def __init__(self, llm: BaseChatModel):
         self._llm = llm
 
-    @log_llm_call("Agent")
+    @_call_logger.log_llm_call("Agent")
     def run(self, task: str, k: int = 4) -> tuple[str, list[dict]]:
         try:
             return asyncio.run(self._run_async(task, k))

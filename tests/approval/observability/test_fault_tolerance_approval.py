@@ -7,13 +7,8 @@ import json
 import pytest
 from approvaltests import verify
 
-from observability.fault_tolerance import (
-    FALLBACK_MESSAGE,
-    MAX_RETRIES,
-    TIMEOUT_SECONDS,
-    invoke_with_timeout,
-    with_retry,
-)
+from observability.fault_tolerance import FaultTolerance, FALLBACK_MESSAGE, MAX_RETRIES, TIMEOUT_SECONDS
+
 
 def test_fault_tolerance_constants():
     """Approval: verify fault tolerance constants."""
@@ -24,18 +19,21 @@ def test_fault_tolerance_constants():
     }, indent=2))
 
 def test_with_retry_returns_result_on_success():
-    """Approval: with_retry passes through the return value on first success."""
-    @with_retry()
+    """Approval: retry passes through the return value on first success."""
+    ft = FaultTolerance()
+
+    @ft.retry()
     def always_succeeds():
         return "success"
 
     verify(always_succeeds())
 
 def test_with_retry_retries_on_failure_then_succeeds():
-    """Approval: with_retry retries and returns result when function eventually succeeds."""
+    """Approval: retry retries and returns result when function eventually succeeds."""
+    ft = FaultTolerance(max_retries=3)
     call_count = {"n": 0}
 
-    @with_retry()
+    @ft.retry()
     def fails_twice_then_succeeds():
         call_count["n"] += 1
         if call_count["n"] < 3:
@@ -50,10 +48,11 @@ def test_with_retry_retries_on_failure_then_succeeds():
     }, indent=2))
 
 def test_with_retry_raises_after_max_retries():
-    """Approval: with_retry raises the original exception after MAX_RETRIES attempts."""
+    """Approval: retry raises the original exception after max_retries attempts."""
+    ft = FaultTolerance(max_retries=MAX_RETRIES)
     call_count = {"n": 0}
 
-    @with_retry()
+    @ft.retry()
     def always_fails():
         call_count["n"] += 1
         raise ValueError("permanent failure")
@@ -71,8 +70,7 @@ def test_invoke_with_timeout_returns_result():
     async def fast_coro():
         return "fast result"
 
-    result = asyncio.run(invoke_with_timeout(fast_coro()))
-
+    result = asyncio.run(FaultTolerance().invoke_with_timeout(fast_coro()))
     verify(result)
 
 def test_invoke_with_timeout_raises_on_timeout():
@@ -82,6 +80,6 @@ def test_invoke_with_timeout_raises_on_timeout():
         return "too slow"
 
     with pytest.raises(asyncio.TimeoutError):
-        asyncio.run(invoke_with_timeout(slow_coro(), timeout=0.01))
+        asyncio.run(FaultTolerance(timeout=0.01).invoke_with_timeout(slow_coro()))
 
     verify("asyncio.TimeoutError raised as expected")
