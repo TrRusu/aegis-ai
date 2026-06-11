@@ -7,7 +7,9 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, Tool
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from app.config import CVE_SERVER_PATH
 from observability.logging_setup import log_llm_call, logger
-from observability.fault_tolerance import with_retry, invoke_with_timeout, FALLBACK_MESSAGE
+from observability.fault_tolerance import FaultTolerance, FALLBACK_MESSAGE
+
+_ft = FaultTolerance()
 from app.utils import extract_text
 from prompts.tool_chain import SYSTEM_PROMPT
 
@@ -19,9 +21,9 @@ class ToolChain:
     def __init__(self, llm: BaseChatModel):
         self._llm = llm
 
-    @with_retry()
+    @_ft.retry()
     async def _invoke_llm(self, llm_with_tools, messages):
-        return await invoke_with_timeout(llm_with_tools.ainvoke(messages))
+        return await _ft.invoke_with_timeout(llm_with_tools.ainvoke(messages))
 
     @log_llm_call("Tools")
     async def _run_async(
