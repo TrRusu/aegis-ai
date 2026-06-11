@@ -14,10 +14,6 @@ from app.config import OPENAI_API_KEY, OPENAI_MODEL
 
 app = FastAPI(title="Aegis Threat Intelligence Agent", version="1.0.0")
 
-# ── Agent Card ─────────────────────────────────────────────────────────────────
-# Published at /.well-known/agent-card.json so clients can discover capabilities.
-# Equivalent to the tutorial's @PublicAgentCard / AgentCard builder.
-
 AGENT_CARD = {
     "name": "Threat Intelligence Agent",
     "description": "Maps cybersecurity incidents to MITRE ATT&CK tactics, techniques and procedures. "
