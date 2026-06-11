@@ -4,6 +4,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from langchain_openai import ChatOpenAI
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import OPENAI_API_KEY, OPENAI_MODEL
 from observability.logging_setup import logger
@@ -25,38 +26,38 @@ If no image is provided, or the image does not appear to be security-related:
 Your output must be a single paragraph combining the text and visual evidence."""
 
 
+class MultimodalAgent:
+    """Enriches incident descriptions with image analysis using an injected LLM."""
+
+    def __init__(self, llm: BaseChatModel):
+        self._llm = llm
+
+    def enrich(self, incident: str, image_bytes: bytes | None, mime_type: str = "image/png") -> str:
+        if not image_bytes:
+            return incident
+
+        logger.info("[Multimodal] Enriching incident description with image analysis")
+
+        image_b64 = base64.b64encode(image_bytes).decode()
+
+        message = HumanMessage(content=[
+            {"type": "text", "text": f"Incident description:\n{incident}"},
+            {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{image_b64}"}},
+        ])
+
+        response = self._llm.invoke([SystemMessage(content=_SYSTEM_PROMPT), message])
+
+        content = response.content
+        if isinstance(content, list):
+            content = "\n".join(
+                b.get("text", "") for b in content
+                if isinstance(b, dict) and b.get("type") == "text"
+            )
+
+        logger.info("[Multimodal] Enrichment complete")
+        return content
+
+
 def enrich_with_image(incident: str, image_bytes: bytes | None, mime_type: str = "image/png") -> str:
-    """
-    Enrich an incident description with observations from an uploaded image.
-    If image_bytes is None, returns the incident unchanged (no API call made).
-    """
-    if not image_bytes:
-        return incident
-
-    logger.info("[Multimodal] Enriching incident description with image analysis")
-
-    image_b64 = base64.b64encode(image_bytes).decode()
-
-    llm = ChatOpenAI(
-        model=OPENAI_MODEL,
-        api_key=OPENAI_API_KEY,
-        temperature=0.0,
-        max_tokens=1024,
-    )
-
-    message = HumanMessage(content=[
-        {"type": "text", "text": f"Incident description:\n{incident}"},
-        {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{image_b64}"}},
-    ])
-
-    response = llm.invoke([SystemMessage(content=_SYSTEM_PROMPT), message])
-
-    content = response.content
-    if isinstance(content, list):
-        content = "\n".join(
-            b.get("text", "") for b in content
-            if isinstance(b, dict) and b.get("type") == "text"
-        )
-
-    logger.info("[Multimodal] Enrichment complete")
-    return content
+    llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=0.0, max_tokens=1024)
+    return MultimodalAgent(llm=llm).enrich(incident, image_bytes, mime_type)
