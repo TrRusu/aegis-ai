@@ -2,7 +2,6 @@ import os
 import streamlit as st
 from app.rag_chain import RagChain
 from ui.shared import build_llm
-from ui.components.tool_calls import render_tool_calls
 
 
 def handle(prompt: str, history: list, temperature: float, max_tokens: int, selected_docs: list, k: int, hybrid: bool) -> str:
