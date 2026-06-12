@@ -1,7 +1,4 @@
-import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 import streamlit as st
 from app.llm import build_llm, build_messages
 from app.rag_chain import RagChain
@@ -27,6 +24,15 @@ from agents.a2a_client import A2AClient
 from app.config import A2A_SERVER_URL
 
 _a2a_client = A2AClient(base_url=A2A_SERVER_URL)
+
+tools_k = 4
+agent_k = 6
+workflow_k = 6
+composed_k = 6
+supervisor_k = 6
+hitl_k = 6
+multimodal_k = 6
+uploaded_image = None
 
 st.set_page_config(page_title=APP_NAME, page_icon="🛡️", layout="centered")
 
@@ -189,22 +195,6 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-if mode != "Tools":
-    tools_k = 4
-if mode != "Agent":
-    agent_k = 6
-if mode != "Workflow":
-    workflow_k = 6
-if mode != "Composed":
-    composed_k = 6
-if mode != "Supervisor":
-    supervisor_k = 6
-if mode != "HITL":
-    hitl_k = 6
-if mode != "Multimodal":
-    multimodal_k = 6
-    uploaded_image = None
-
 # ── CHAT ───────────────────────────────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -281,8 +271,6 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
 
         elif mode == "Tools":
             with st.spinner("Aegis is thinking..."):
-                from langchain_openai import ChatOpenAI
-                from app.config import OPENAI_API_KEY, OPENAI_MODEL
                 _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
                 response, tool_calls_log = ToolChain(llm=_llm).run(prompt, st.session_state.messages, tools=make_tools(k=tools_k))
             st.markdown(response.replace("$", r"\$"))
@@ -297,8 +285,6 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
 
         elif mode == "Agent":
             with st.spinner("Aegis Triage Agent is investigating..."):
-                from langchain_openai import ChatOpenAI
-                from app.config import OPENAI_API_KEY, OPENAI_MODEL
                 _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
                 response, tool_calls_log = BreachTriageAgent(llm=_llm).run(prompt, k=agent_k)
             st.markdown(response.replace("$", r"\$"))
@@ -421,8 +407,6 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
                 enriched = prompt
 
             with st.spinner("Triage agent investigating..."):
-                from langchain_openai import ChatOpenAI
-                from app.config import OPENAI_API_KEY, OPENAI_MODEL
                 _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
                 response, tool_calls_log = BreachTriageAgent(llm=_llm).run(enriched, k=multimodal_k)
             st.markdown(response.replace("$", r"\$"))
