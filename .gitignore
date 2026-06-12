@@ -38,6 +38,9 @@ Thumbs.db
 .coverage
 htmlcov/
 
+# Package metadata
+*.egg-info/
+
 # Approvaltests received files and temp folder (never commit these)
 *.received.txt
 .approval_tests_temp/
