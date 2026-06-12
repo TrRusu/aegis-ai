@@ -1,7 +1,4 @@
-import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 import streamlit as st
 from app.llm import build_llm, build_messages
 from app.rag_chain import RagChain
