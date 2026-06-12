@@ -28,6 +28,15 @@ from app.config import A2A_SERVER_URL
 
 _a2a_client = A2AClient(base_url=A2A_SERVER_URL)
 
+tools_k = 4
+agent_k = 6
+workflow_k = 6
+composed_k = 6
+supervisor_k = 6
+hitl_k = 6
+multimodal_k = 6
+uploaded_image = None
+
 st.set_page_config(page_title=APP_NAME, page_icon="🛡️", layout="centered")
 
 st.title(f"🛡️ {APP_NAME}")
@@ -188,22 +197,6 @@ with st.sidebar:
     if st.button("Clear chat", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
-
-if mode != "Tools":
-    tools_k = 4
-if mode != "Agent":
-    agent_k = 6
-if mode != "Workflow":
-    workflow_k = 6
-if mode != "Composed":
-    composed_k = 6
-if mode != "Supervisor":
-    supervisor_k = 6
-if mode != "HITL":
-    hitl_k = 6
-if mode != "Multimodal":
-    multimodal_k = 6
-    uploaded_image = None
 
 # ── CHAT ───────────────────────────────────────────────────────────────────────
 if "messages" not in st.session_state:
