@@ -31,7 +31,6 @@ st.title(f"🛡️ {APP_NAME}")
 st.caption("AI-Powered Data Breach Analyst Assistant")
 st.divider()
 
-# ── SIDEBAR ─────────────────────────────────────────────────────────────────────
 with st.sidebar:
     temperature, max_tokens = render_model_params()
     st.divider()
@@ -164,7 +163,6 @@ with st.sidebar:
 
     render_sidebar_footer()
 
-# ── CHAT ─────────────────────────────────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
