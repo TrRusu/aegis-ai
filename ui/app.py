@@ -281,8 +281,6 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
 
         elif mode == "Tools":
             with st.spinner("Aegis is thinking..."):
-                from langchain_openai import ChatOpenAI
-                from app.config import OPENAI_API_KEY, OPENAI_MODEL
                 _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
                 response, tool_calls_log = ToolChain(llm=_llm).run(prompt, st.session_state.messages, tools=make_tools(k=tools_k))
             st.markdown(response.replace("$", r"\$"))
@@ -297,8 +295,6 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
 
         elif mode == "Agent":
             with st.spinner("Aegis Triage Agent is investigating..."):
-                from langchain_openai import ChatOpenAI
-                from app.config import OPENAI_API_KEY, OPENAI_MODEL
                 _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
                 response, tool_calls_log = BreachTriageAgent(llm=_llm).run(prompt, k=agent_k)
             st.markdown(response.replace("$", r"\$"))
@@ -421,8 +417,6 @@ if prompt := st.chat_input("Ask Aegis about a threat, CVE, or incident..."):
                 enriched = prompt
 
             with st.spinner("Triage agent investigating..."):
-                from langchain_openai import ChatOpenAI
-                from app.config import OPENAI_API_KEY, OPENAI_MODEL
                 _llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=temperature, max_tokens=max_tokens)
                 response, tool_calls_log = BreachTriageAgent(llm=_llm).run(enriched, k=multimodal_k)
             st.markdown(response.replace("$", r"\$"))
