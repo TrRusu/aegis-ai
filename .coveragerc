@@ -7,6 +7,7 @@ omit =
     */__init__.py
     ui/*
     docs/*
+    scripts/*
 
 [report]
 exclude_lines =
