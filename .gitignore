@@ -45,5 +45,5 @@ htmlcov/
 *.received.txt
 .approval_tests_temp/
 
-# Portfolio documentation (local only)
-docs/portfolio/
+# Documentation (local only)
+docs/
