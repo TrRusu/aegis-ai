@@ -1,6 +1,6 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from langchain_classic.storage import InMemoryByteStore
-from rag.embedding_cache import CachedEmbeddings
+from rag.embedding_cache import CachedEmbeddings, make_cached_embeddings
 
 
 def _make_embedder(vectors: dict) -> MagicMock:
@@ -52,3 +52,22 @@ def test_different_namespace_does_not_share_cache():
     cached_a.embed_documents(["hello"])
     cached_b.embed_documents(["hello"])
     assert underlying.embed_documents.call_count == 2
+
+
+def test_make_cached_embeddings_wraps_openai_embeddings_with_local_file_store():
+    with patch("rag.embedding_cache.OpenAIEmbeddings") as mock_openai_cls, \
+         patch("rag.embedding_cache.LocalFileStore") as mock_store_cls, \
+         patch("rag.embedding_cache.CacheBackedEmbeddings") as mock_cached_cls:
+        make_cached_embeddings()
+        mock_openai_cls.assert_called_once()
+        mock_store_cls.assert_called_once()
+        assert mock_cached_cls.from_bytes_store.call_args[0][0] is mock_openai_cls.return_value
+        assert mock_cached_cls.from_bytes_store.call_args[0][1] is mock_store_cls.return_value
+
+
+def test_make_cached_embeddings_returns_cached_embeddings_instance():
+    with patch("rag.embedding_cache.OpenAIEmbeddings"), \
+         patch("rag.embedding_cache.LocalFileStore"), \
+         patch("rag.embedding_cache.CacheBackedEmbeddings"):
+        result = make_cached_embeddings()
+        assert isinstance(result, CachedEmbeddings)

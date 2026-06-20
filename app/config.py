@@ -18,4 +18,5 @@ A2A_SERVER_URL = os.getenv("A2A_SERVER_URL", "http://localhost:8888")
 A2A_TIMEOUT = int(os.getenv("A2A_TIMEOUT", "30"))
 
 CHROMA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".chroma"))
+EMBEDDING_CACHE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".embedding_cache"))
 KNOWLEDGE_BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "knowledge_base"))

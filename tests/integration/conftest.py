@@ -11,4 +11,4 @@ class FakeEmbedder:
 
 @pytest.fixture(autouse=True)
 def fix_embedding_mock(monkeypatch):
-    monkeypatch.setattr("rag.store.OpenAIEmbeddings", lambda **kwargs: FakeEmbedder())
+    monkeypatch.setattr("rag.store.make_cached_embeddings", lambda: FakeEmbedder())

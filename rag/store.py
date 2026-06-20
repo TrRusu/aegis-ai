@@ -1,14 +1,15 @@
 """Module for building vector stores for RAG.
 """
-from langchain_openai import OpenAIEmbeddings
+from langchain_core.embeddings import Embeddings
 from langchain_chroma import Chroma
-from app.config import OPENAI_API_KEY, OPENAI_EMBEDDING_MODEL, CHROMA_DIR
+from app.config import CHROMA_DIR
+from rag.embedding_cache import make_cached_embeddings
 
 
 class ChromaStore:
 
-    def __init__(self):
-        self._embeddings = OpenAIEmbeddings(model=OPENAI_EMBEDDING_MODEL, api_key=OPENAI_API_KEY)
+    def __init__(self, embeddings: Embeddings | None = None):
+        self._embeddings = embeddings or make_cached_embeddings()
         self._vectorstore = Chroma(persist_directory=CHROMA_DIR, embedding_function=self._embeddings)
 
     @property
