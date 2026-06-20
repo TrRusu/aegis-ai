@@ -6,7 +6,7 @@ from agents.a2a_client import A2AClient
 from rag.ingestion import make_store
 from rag.document_loader import BasicPdfLoader, EnhancedPdfLoader
 from tools.tools import make_tools
-from ui.shared import check_injection
+from ui.shared import check_injection, get_semantic_cache
 from ui.components.chat import render_chat_history, append_message
 from ui.components.sidebar import render_model_params, render_k_slider, render_sidebar_footer
 import ui.modes.chat as mode_chat
@@ -77,7 +77,7 @@ with st.sidebar:
                     loader = EnhancedPdfLoader(llm=_ingest_llm, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
                 else:
                     loader = BasicPdfLoader(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-                msg = make_store().ingest(save_path, loader, mode_label="enhanced" if enhanced else "basic")
+                msg = make_store(cache=get_semantic_cache()).ingest(save_path, loader, mode_label="enhanced" if enhanced else "basic")
             st.session_state.processed_uploads.add(uploaded.name)
             st.success(msg)
             st.rerun()

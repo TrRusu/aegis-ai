@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Lint — ruff
+      - name: Lint - ruff
         run: |
           pip install ruff
           ruff check .
@@ -54,7 +54,7 @@ jobs:
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-redirs 5 ${{ secrets.STREAMLIT_APP_URL }})
           echo "Streamlit response: $STATUS"
           if [ "$STATUS" = "000" ]; then
-            echo "Deployment verification failed — server unreachable"
+            echo "Deployment verification failed - server unreachable"
             exit 1
           fi
           echo "Deployment verified successfully — HTTP $STATUS"
