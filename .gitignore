@@ -16,6 +16,9 @@ env/
 .chroma/
 data/chroma_db/
 
+# Embedding cache
+.embedding_cache/
+
 # Knowledge base documents (large files, not for version control)
 data/knowledge_base/*.pdf
 data/knowledge_base/*.txt
@@ -45,5 +48,5 @@ htmlcov/
 *.received.txt
 .approval_tests_temp/
 
-# Portfolio documentation (local only)
-docs/portfolio/
+# Documentation (local only)
+docs/
