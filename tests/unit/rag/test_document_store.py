@@ -62,3 +62,36 @@ def test_ingest_stores_chunks_in_vectorstore():
     store = DocumentStore(store=mock_store)
     store.ingest("report.pdf", loader=mock_loader)
     mock_store.add_documents.assert_called_once()
+
+
+def test_ingest_clears_cache_on_new_ingestion():
+    from rag.ingestion import DocumentStore
+    mock_store = MagicMock()
+    mock_store.vectorstore._collection.get.return_value = {"metadatas": []}
+    mock_cache = MagicMock()
+    mock_loader = MagicMock()
+    mock_loader.load.return_value = [Document(page_content="chunk", metadata={})]
+    store = DocumentStore(store=mock_store, cache=mock_cache)
+    store.ingest("report.pdf", loader=mock_loader)
+    mock_cache.clear.assert_called_once()
+
+
+def test_ingest_does_not_clear_cache_when_already_ingested():
+    from rag.ingestion import DocumentStore
+    mock_store = MagicMock()
+    mock_store.vectorstore._collection.get.return_value = {"metadatas": [{"source": "/kb/test.pdf"}]}
+    mock_cache = MagicMock()
+    store = DocumentStore(store=mock_store, cache=mock_cache)
+    store.ingest("test.pdf", loader=MagicMock())
+    mock_cache.clear.assert_not_called()
+
+
+def test_ingest_without_injected_cache_does_not_raise():
+    from rag.ingestion import DocumentStore
+    mock_store = MagicMock()
+    mock_store.vectorstore._collection.get.return_value = {"metadatas": []}
+    mock_loader = MagicMock()
+    mock_loader.load.return_value = [Document(page_content="chunk", metadata={})]
+    store = DocumentStore(store=mock_store)
+    result = store.ingest("report.pdf", loader=mock_loader)
+    assert "report.pdf" in result

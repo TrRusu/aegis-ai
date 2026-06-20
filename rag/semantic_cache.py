@@ -33,6 +33,9 @@ class SemanticCache:
         vector = self._embeddings.embed_query(query)
         self._entries.append((vector, response))
 
+    def clear(self) -> None:
+        self._entries = []
+
     @staticmethod
     def _cosine_similarity(a: list[float], b: list[float]) -> float:
         dot = sum(x * y for x, y in zip(a, b))

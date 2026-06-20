@@ -69,3 +69,11 @@ def test_store_does_not_raise_and_is_retrievable():
 def test_default_threshold_is_within_recommended_range():
     cache = SemanticCache(embeddings=MagicMock())
     assert 0.90 <= cache._threshold <= 0.95
+
+
+def test_clear_removes_all_entries():
+    embedder = _make_embedder({"a": [1.0, 0.0]})
+    cache = SemanticCache(embeddings=embedder, threshold=0.9)
+    cache.store("a", "response-a")
+    cache.clear()
+    assert cache.check("a") is None

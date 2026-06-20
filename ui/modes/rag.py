@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 from app.rag_chain import RagChain
-from ui.shared import build_llm
+from ui.shared import build_llm, get_semantic_cache
 
 
 def handle(prompt: str, history: list, temperature: float, max_tokens: int, selected_docs: list, k: int, hybrid: bool) -> str:
@@ -10,7 +10,7 @@ def handle(prompt: str, history: list, temperature: float, max_tokens: int, sele
         return "No documents selected. Please upload and select a document in the sidebar."
 
     _llm = build_llm(temperature=temperature, max_tokens=max_tokens, streaming=True)
-    stream, source_docs = RagChain(llm=_llm).run(
+    stream, source_docs = RagChain(llm=_llm, cache=get_semantic_cache()).run(
         user_input=prompt,
         history=history,
         temperature=temperature,
