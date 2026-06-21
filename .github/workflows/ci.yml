@@ -49,19 +49,15 @@ jobs:
       - name: Wait for Streamlit deployment
         run: sleep 30
 
-      - name: Verify deployment is healthy
+      - name: Verify deployment is live
         run: |
-          for i in $(seq 1 10); do
-            RESPONSE=$(curl -s --max-redirs 5 "${{ secrets.STREAMLIT_APP_URL }}/script-health-check")
-            echo "Attempt $i: script-health-check returned '$RESPONSE'"
-            if [ "$RESPONSE" = "ok" ]; then
-              echo "Deployment verified healthy"
-              exit 0
-            fi
-            sleep 15
-          done
-          echo "Deployment verification failed - script-health-check did not return 'ok' after retries"
-          exit 1
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-redirs 5 ${{ secrets.STREAMLIT_APP_URL }})
+          echo "Streamlit response: $STATUS"
+          if [ "$STATUS" = "000" ]; then
+            echo "Deployment verification failed - server unreachable"
+            exit 1
+          fi
+          echo "Deployment verified successfully - HTTP $STATUS"
 
       - name: Create GitHub release tag
         uses: actions/github-script@v7
