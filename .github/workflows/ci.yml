@@ -49,7 +49,7 @@ jobs:
       - name: Wait for Streamlit deployment
         run: sleep 30
 
-      - name: Verify deployment is live
+      - name: Verify deployment is healthy
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-redirs 5 ${{ secrets.STREAMLIT_APP_URL }})
           echo "Streamlit response: $STATUS"
